@@ -1,0 +1,39 @@
+{
+  "name": "seo-analytics-mcp",
+  "version": "0.0.0",
+  "private": true,
+  "description": "SEO Analytics MCP Connector: Next.js dashboard + Node.js MCP server",
+  "packageManager": "pnpm@12.14.0",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "build:packages": "pnpm --filter \"./packages/*\" run build",
+    "build": "pnpm -r run build",
+    "build:web": "pnpm build:packages && pnpm --filter @serp/web run build",
+    "build:mcp": "pnpm build:packages && pnpm --filter @serp/mcp-server run build",
+    "dev:web": "pnpm build:packages && pnpm --filter @serp/web run dev",
+    "dev:mcp": "pnpm build:packages && pnpm --filter @serp/mcp-server run dev",
+    "start:web": "pnpm --filter @serp/web run start",
+    "start:mcp": "pnpm --filter @serp/mcp-server run start",
+    "typecheck": "pnpm build:packages && pnpm -r run typecheck",
+    "test": "vitest run",
+    "clean": "pnpm -r run clean",
+    "test:e2e": "pnpm build:web && pnpm build:mcp && vitest run --config vitest.e2e.config.mts && E2E_DB=postgres vitest run --config vitest.e2e.config.mts tests/e2e/auth-flow.e2e.ts",
+    "google:check": "tsx --env-file-if-exists=.env.local scripts/check-google-oauth.mts",
+    "mcp:check": "tsx --env-file-if-exists=.env.local scripts/check-mcp-oauth.mts",
+    "clarity:check": "tsx --env-file-if-exists=.env.local scripts/check-clarity.mts",
+    "bing:check": "tsx --env-file-if-exists=.env.local scripts/check-bing.mts"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.10",
+    "@electric-sql/pglite-socket": "^0.2.13",
+    "@modelcontextprotocol/sdk": "^1.32.0",
+    "@types/node": "catalog:",
+    "jose": "6.2.12",
+    "tsx": "^4.23.0",
+    "typescript": "catalog:",
+    "vitest": "^4.0.0",
+    "zod": "catalog:"
+  }
+}

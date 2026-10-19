@@ -1,0 +1,33 @@
+{
+  "name": "@serp/mcp-server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --env-file-if-exists=../../.env.local src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node --env-file-if-exists=../../.env.local dist/index.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.0",
+    "@serp/auth": "workspace:*",
+    "@serp/contracts": "workspace:*",
+    "@serp/credentials": "workspace:*",
+    "@serp/db": "workspace:*",
+    "@serp/observability": "workspace:*",
+    "@serp/provider-bing": "workspace:*",
+    "@serp/provider-ga4": "workspace:*",
+    "@serp/provider-google": "workspace:*",
+    "@serp/provider-gsc": "workspace:*",
+    "@serp/reporting": "workspace:*",
+    "@serp/secrets": "workspace:*",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "tsx": "^4.23.0",
+    "typescript": "catalog:"
+  }
+}

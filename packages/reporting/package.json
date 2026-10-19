@@ -1,0 +1,36 @@
+{
+  "name": "@serp/reporting",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@serp/contracts": "workspace:*",
+    "@serp/db": "workspace:*",
+    "@serp/auth": "workspace:*",
+    "@serp/query-planner": "workspace:*",
+    "@serp/cache": "workspace:*",
+    "@serp/provider-gsc": "workspace:*",
+    "@serp/provider-ga4": "workspace:*",
+    "@serp/provider-clarity": "workspace:*",
+    "@serp/provider-bing": "workspace:*",
+    "@serp/observability": "workspace:*",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:"
+  }
+}

@@ -1,0 +1,11 @@
+# Minimal Supabase CLI config so `supabase link` / `supabase db push` work from this repo.
+# Remote project settings (email confirmation, redirect URLs) are managed in the dashboard;
+# see docs/SUPABASE-SETUP.md.
+project_id = "serp-connect"
+
+[db]
+major_version = 17
+
+[auth]
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000/auth/callback"]

@@ -1,0 +1,39 @@
+{
+  "name": "@serp/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./supabase": {
+      "types": "./dist/supabase.d.ts",
+      "default": "./dist/supabase.js"
+    },
+    "./pg": {
+      "types": "./dist/pg.d.ts",
+      "default": "./dist/pg.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@serp/cache": "workspace:*",
+    "@serp/contracts": "workspace:*",
+    "@serp/provider-clarity": "workspace:*",
+    "@supabase/supabase-js": "^2.118.0",
+    "pg": "^8.23.0"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/pg": "^8.23.0"
+  }
+}

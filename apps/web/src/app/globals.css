@@ -1,0 +1,84 @@
+@import "tailwindcss";
+
+/* Brand: deep green-black surface, orange call to action, teal accents from the logo. */
+:root {
+  --bg: #07110f;
+  --bg-2: #0b2623;
+  --surface: rgba(255, 255, 255, 0.04);
+  --line: rgba(255, 255, 255, 0.12);
+  --fg: #ffffff;
+  --muted: rgba(255, 255, 255, 0.68);
+  --brand: #ff7a00;
+  --brand-hover: #ff8f26;
+  --teal: #abdcd6;
+}
+
+@theme inline {
+  --font-sans: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-playfair), Georgia, serif;
+}
+
+/* The brand is dark-only, so Tailwind's dark: variant is always on. */
+@custom-variant dark (&:where(*));
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(1200px 600px at 15% -10%, var(--bg-2), transparent 70%),
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size: auto, 56px 56px, 56px 56px;
+  color: var(--fg);
+  font-family: var(--font-sans);
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium text-white transition;
+    background: var(--brand);
+    box-shadow: 0 6px 24px rgba(255, 122, 0, 0.35);
+  }
+  .btn-primary:hover {
+    background: var(--brand-hover);
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium transition;
+    border: 1px solid var(--line);
+    background: var(--surface);
+  }
+  .btn-ghost:hover {
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+  .card {
+    @apply rounded-2xl p-6;
+    border: 1px solid var(--line);
+    background: var(--surface);
+  }
+  .field {
+    @apply mt-1.5 w-full rounded-xl px-3.5 py-2.5 text-sm outline-none;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.05);
+  }
+  .field:focus {
+    border-color: var(--brand);
+  }
+  .accent {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-weight: 500;
+  }
+  .muted {
+    color: var(--muted);
+  }
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
