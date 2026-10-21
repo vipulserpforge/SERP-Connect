@@ -4,10 +4,10 @@ This guide puts **both** parts of your project on your Hostinger Cloud plan:
 
 | Part | What it is | Address you will use |
 |---|---|---|
-| **Web app** | The website where customers sign up and click "Connect Google" | `https://app.yourdomain.com` |
-| **MCP server** | The connection point that Claude talks to | `https://mcp.yourdomain.com` |
+| **Web app** | The website where customers sign up and click "Connect Google" | `https://connect.serpforge.io` |
+| **MCP server** | The connection point that Claude talks to | `https://mcp.serpforge.io` |
 
-Replace `yourdomain.com` with your real domain everywhere. Use two *sub*-addresses (`app.` and `mcp.`) so each part has its own address.
+These docs use `connect.serpforge.io` (website) and `mcp.serpforge.io` (MCP server). Use two *sub*-addresses so each part has its own address. The names themselves do not matter to the code: it reads them only from `NEXT_PUBLIC_APP_URL` and `MCP_PUBLIC_URL`.
 
 You do not need to write code. You will click through Hostinger's control panel (called **hPanel**), GitHub, Supabase and Google, and paste values.
 
@@ -42,7 +42,7 @@ Hostinger deploys from a GitHub repository. Your repository is `vipulserpforge/S
 
 ### 1.3 Pick the two addresses
 
-Decide: `app.yourdomain.com` (website) and `mcp.yourdomain.com` (MCP). Your domain should be managed in Hostinger (hPanel → **Domains**) so DNS and the free SSL certificate (the padlock) are handled for you. If your domain is elsewhere, point it to Hostinger first.
+Your addresses: `connect.serpforge.io` (website) and `mcp.serpforge.io` (MCP). Your domain should be managed in Hostinger (hPanel → **Domains**) so DNS and the free SSL certificate (the padlock) are handled for you. If your domain is elsewhere, point it to Hostinger first.
 
 ### 1.4 Tools on your own computer
 
@@ -87,7 +87,7 @@ Create `web.env` (plain text, one `NAME=value` per line, **no quotes, no spaces 
 AUTH_MODE=supabase
 DB_MODE=postgres
 DATA_MODE=live
-NEXT_PUBLIC_APP_URL=https://app.yourdomain.com
+NEXT_PUBLIC_APP_URL=https://connect.serpforge.io
 NEXT_PUBLIC_SUPABASE_URL=<from .env.local>
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<from .env.local>
 SUPABASE_DB_URL=<from .env.local>
@@ -99,8 +99,8 @@ CREDENTIAL_FINGERPRINT_KEY=<a second key for Microsoft Clarity and Bing API keys
 # PROVIDER_BING_ENABLED=true   (only after pnpm bing:check --yes passes)
 GOOGLE_CLIENT_ID=<from Google>
 GOOGLE_CLIENT_SECRET=<from Google>
-NEXT_PUBLIC_MCP_URL=https://mcp.yourdomain.com/mcp
-SUPPORT_EMAIL=<the contact email for your privacy page>
+NEXT_PUBLIC_MCP_URL=https://mcp.serpforge.io/mcp
+SUPPORT_EMAIL=vipul@serpforge.io
 ```
 
 Create `mcp.env`:
@@ -113,10 +113,10 @@ SECRET_KEYS=<the SAME key as web.env>
 CREDENTIAL_FINGERPRINT_KEY=<the SAME value as web.env>
 GOOGLE_CLIENT_ID=<same as web.env>
 GOOGLE_CLIENT_SECRET=<same as web.env>
-MCP_PUBLIC_URL=https://mcp.yourdomain.com
+MCP_PUBLIC_URL=https://mcp.serpforge.io
 MCP_AUTH_MODE=oauth
 MCP_OAUTH_ISSUER_URL=https://dphftsifxfhxbhtgabso.supabase.co/auth/v1
-MCP_RESOURCE_AUDIENCE=https://mcp.yourdomain.com/mcp
+MCP_RESOURCE_AUDIENCE=https://mcp.serpforge.io/mcp
 ```
 
 Notes:
@@ -152,10 +152,10 @@ You do this inside the first "Add Website" flow (Part 4, step 4): Hostinger show
    | Entry file | `scripts/start-web.mjs` |
 
    Hostinger auto-detects Next.js and may suggest `apps/web` as the root. Override it: this app needs the shared folders (`packages/…`) that sit outside `apps/web`.
-6. Find **Set environment variables** on this screen. Click **Import .env**, upload `web.env`, and check the list shows all 12 names. (You can also use **Add environment variable** one at a time.)
-7. If hPanel asks which **domain** to use, choose `app.yourdomain.com`. If it does not ask, finish the deploy first and then look in the website's dashboard for a domain / "Connect domain" option.
+6. Find **Set environment variables** on this screen. Click **Import .env**, upload `web.env`, and check the list shows all 13 names. (You can also use **Add environment variable** one at a time.)
+7. If hPanel asks which **domain** to use, choose `connect.serpforge.io`. If it does not ask, finish the deploy first and then look in the website's dashboard for a domain / "Connect domain" option.
 8. Click **Deploy**. Watch the **build log**. The first build takes several minutes. Success ends with the app showing **Running**.
-9. Open `https://app.yourdomain.com/api/health`. You should see `{"status":"ok"}`. Then open `https://app.yourdomain.com/` and `https://app.yourdomain.com/privacy`.
+9. Open `https://connect.serpforge.io/api/health`. You should see `{"status":"ok"}`. Then open `https://connect.serpforge.io/` and `https://connect.serpforge.io/privacy`.
 
 If the build or start fails, go to Part 9.
 
@@ -175,13 +175,13 @@ Repeat Part 4 with **Add Website** again, the same repository and branch, and th
 | Output directory | empty |
 | Entry file | `scripts/start-mcp.mjs` |
 | Environment variables | import `mcp.env` |
-| Domain | `mcp.yourdomain.com` |
+| Domain | `mcp.serpforge.io` |
 
 After it shows **Running**, test:
 
-- `https://mcp.yourdomain.com/healthz` → `{"status":"ok"}`
-- `https://mcp.yourdomain.com/.well-known/oauth-protected-resource/mcp` → a small block of text starting with `{"resource":"https://mcp.yourdomain.com/mcp"`
-- Opening `https://mcp.yourdomain.com/mcp` in a browser should show an error "unauthorized" (HTTP 401). **That is correct**: only signed-in Claude may use it.
+- `https://mcp.serpforge.io/healthz` → `{"status":"ok"}`
+- `https://mcp.serpforge.io/.well-known/oauth-protected-resource/mcp` → a small block of text starting with `{"resource":"https://mcp.serpforge.io/mcp"`
+- Opening `https://mcp.serpforge.io/mcp` in a browser should show an error "unauthorized" (HTTP 401). **That is correct**: only signed-in Claude may use it.
 
 Then **delete `web.env` and `mcp.env`** from your computer (they contain secrets), keeping the values in your password manager.
 
@@ -194,8 +194,8 @@ Until you do, sign-up emails and Google sign-in will still point to `localhost`.
 ### 6.1 Supabase
 
 Supabase Dashboard → your project → **Authentication** → **URL Configuration**:
-- **Site URL:** `https://app.yourdomain.com`
-- **Redirect URLs:** add `https://app.yourdomain.com/auth/callback` (keep the localhost one if you still test on your computer)
+- **Site URL:** `https://connect.serpforge.io`
+- **Redirect URLs:** add `https://connect.serpforge.io/auth/callback` (keep the localhost one if you still test on your computer)
 - Save.
 
 For Claude connections (later step): **Authentication → OAuth Server** → enable, and set the **Authorization Path** to `/oauth/consent`. Details in [`MCP.md`](MCP.md).
@@ -204,7 +204,7 @@ For Claude connections (later step): **Authentication → OAuth Server** → ena
 
 Google Cloud console → Google Auth Platform → **Clients** → your client → **Authorized redirect URIs** → **Add URI**:
 ```
-https://app.yourdomain.com/api/oauth/google/callback
+https://connect.serpforge.io/api/oauth/google/callback
 ```
 Save. (Details, including test users and publishing: [`GOOGLE-SETUP-SIMPLE.md`](GOOGLE-SETUP-SIMPLE.md), Parts 4, 6 and 9.) While the Google app is in Testing, only accounts you listed as test users can connect, and their connections expire after 7 days.
 
@@ -214,14 +214,14 @@ Save. (Details, including test users and publishing: [`GOOGLE-SETUP-SIMPLE.md`](
 
 Go in this order and tick each one:
 
-- [ ] Website opens at `https://app.yourdomain.com` with a padlock.
-- [ ] Create an account, click the email confirmation link; the link opens `app.yourdomain.com` (not localhost).
-- [ ] Sign in; the **Integrations** page appears. The "Use with Claude" box shows `https://mcp.yourdomain.com/mcp`.
+- [ ] Website opens at `https://connect.serpforge.io` with a padlock.
+- [ ] Create an account, click the email confirmation link; the link opens `connect.serpforge.io` (not localhost).
+- [ ] Sign in; the **Integrations** page appears. The "Use with Claude" box shows `https://mcp.serpforge.io/mcp`.
 - [ ] **Connect Search Console**, then **Connect GA4** with a Google account that has access; properties appear.
 - [ ] **Disconnect** removes them.
-- [ ] On your computer, in the project folder, check the MCP side: `pnpm mcp:check https://mcp.yourdomain.com/mcp`. Lines marked FAIL tell you what is missing (for example the Supabase OAuth server or audience setting).
+- [ ] On your computer, in the project folder, check the MCP side: `pnpm mcp:check https://mcp.serpforge.io/mcp`. Lines marked FAIL tell you what is missing (for example the Supabase OAuth server or audience setting).
 - [ ] Check Google settings with the live values without typing the secret on the command line: `pnpm exec tsx --env-file=<path to web.env> scripts/check-google-oauth.mts --probe --secret` (only possible if you still have the file; otherwise skip, the Connect test above already proves it).
-- [ ] Finally add the connector in Claude (Settings → Connectors → Add custom connector → `https://mcp.yourdomain.com/mcp`) once the Supabase steps in `MCP.md` are done.
+- [ ] Finally add the connector in Claude (Settings → Connectors → Add custom connector → `https://mcp.serpforge.io/mcp`) once the Supabase steps in `MCP.md` are done.
 
 ---
 
@@ -230,7 +230,7 @@ Go in this order and tick each one:
 - **Update the site:** push changes to `main` on GitHub. Hostinger rebuilds and restarts automatically (one deployment at a time; extra pushes wait in line). You can also click **Redeploy** in the app's dashboard.
 - **Change a setting:** hPanel → the app → **Environment variables** → edit → **Save**. Saving **redeploys** the app so the change takes effect. Do this for both apps if a value is shared (for example a rotated Google secret).
 - **Logs:** the app's dashboard → **Deployments** (build logs) and **Runtime logs** (what the running app prints). Logs never contain passwords or tokens, but still do not share screenshots publicly.
-- **Sleeping:** Hostinger stops apps after a period without traffic and restarts them on the next request. The first request after a quiet spell is slower. Claude waits up to roughly 10 seconds for connection steps, so if the connector sometimes fails only after quiet periods, set up a free uptime monitor (for example UptimeRobot) to open `https://mcp.yourdomain.com/healthz` every 5 minutes. I could not confirm that this prevents Hostinger from stopping the app, so test it. If it does not help, a Hostinger VPS (which runs apps continuously) is the fallback.
+- **Sleeping:** Hostinger stops apps after a period without traffic and restarts them on the next request. The first request after a quiet spell is slower. Claude waits up to roughly 10 seconds for connection steps, so if the connector sometimes fails only after quiet periods, set up a free uptime monitor (for example UptimeRobot) to open `https://mcp.serpforge.io/healthz` every 5 minutes. I could not confirm that this prevents Hostinger from stopping the app, so test it. If it does not help, a Hostinger VPS (which runs apps continuously) is the fallback.
 - **What resets when the app restarts:** the short-term rate-limit counters (in memory). Saved Google connections and cached reports live in the database and are not lost.
 
 ---
@@ -248,7 +248,7 @@ Go in this order and tick each one:
 | Runtime logs mention the database | Wrong `SUPABASE_DB_URL` (needs the **pooler** URL including the password) | Copy it again from Supabase → Project Settings → Database |
 | 502 / "bad gateway" right after deploy | App is still starting, or it listens on the wrong port | Wait a minute; check Runtime logs; if it stays, contact Hostinger support and tell them the app reads the `PORT` environment variable |
 | Sign-up email link goes to localhost | Supabase Site URL not updated | Part 6.1 |
-| Google: `redirect_uri_mismatch` | The live address is not registered in Google | Part 6.2, exactly `https://app.yourdomain.com/api/oauth/google/callback` |
+| Google: `redirect_uri_mismatch` | The live address is not registered in Google | Part 6.2, exactly `https://connect.serpforge.io/api/oauth/google/callback` |
 | Dashboard Connect button is disabled | `GOOGLE_CLIENT_ID/SECRET` or `DATA_MODE=live` missing in the **web** app | Check variables, Save (redeploys) |
 | Connected on the website but Claude's reports fail | MCP app lacks Google variables or has a different `SECRET_KEYS` | Make `mcp.env` values match `web.env` |
 | `mcp:check` says the audience/OAuth server is not ready | Supabase side not finished | Follow [`MCP.md`](MCP.md) |
@@ -264,7 +264,7 @@ If after two honest attempts Hostinger's monorepo handling blocks the build, the
 
 | | Website | MCP server |
 |---|---|---|
-| Address | `https://app.yourdomain.com` | `https://mcp.yourdomain.com` (endpoint `/mcp`) |
+| Address | `https://connect.serpforge.io` | `https://mcp.serpforge.io` (endpoint `/mcp`) |
 | Build script | `build:web` | `build:mcp` |
 | Entry file | `scripts/start-web.mjs` | `scripts/start-mcp.mjs` |
 | Root directory | repository root | repository root |
