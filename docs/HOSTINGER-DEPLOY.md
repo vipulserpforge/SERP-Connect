@@ -263,7 +263,8 @@ Find your message in the table. If it does not help, send Claude the error text 
 
 | What you see | What it means | What to do |
 |---|---|---|
-| Build log: "pnpm: not found" or a pnpm version error | Hostinger's pnpm differs from the project's | Check Package manager = **pnpm**, Node = **24**. If it still fails, send Claude the log lines |
+| Build log: `[ERROR] This project is configured to use 12.14.0 of pnpm. Your current pnpm is v11…` | Hostinger runs two different pnpm versions | Already fixed in the project (setting `pmOnFail: ignore` in `pnpm-workspace.yaml`). Make sure Hostinger is building the **latest** `main` (see "Getting the latest code" below), then **Redeploy** |
+| Build log: "pnpm: not found" or another pnpm version error | Hostinger's pnpm differs from the project's | Check Package manager = **pnpm**, Node = **24**. If it still fails, send Claude the log lines |
 | Build log: "engine" / "Unsupported engine" | Node version too old | Choose Node **24** |
 | Build log: `Cannot find module '@serp/…'` or `tsc: not found` | Root directory is not the whole project | Leave Root directory **empty**. Do not add `NODE_ENV` |
 | "Entry file not found" | Typing mistake in the entry file | Website: `scripts/start-web.mjs`. MCP: `scripts/start-mcp.mjs`. No `/` at the start |
@@ -277,6 +278,8 @@ Find your message in the table. If it does not help, send Claude the error text 
 | Connected on the website, but Claude's reports fail | The MCP app is missing Google settings, or has a different `SECRET_KEYS` | Make `mcp.env` values match `web.env` |
 | The connection check says "audience" or "OAuth server" not ready | Supabase steps not finished | Step 5.2 and 5.3, and [`MCP.md`](MCP.md) |
 | You cannot add the second app | Plan limit | Upgrade or remove an unused app |
+
+**Getting the latest code:** a build log that starts with `Source: uploaded archive SERP-Connect-main.zip` means Hostinger built a **copy of the code taken at one moment**, not a live link to GitHub. Fixes pushed later are not in that copy. Create the app again with **Import Git repository** (Step 3.1 and 3.2), or in the app's dashboard use the Git / **Redeploy from GitHub** option, so Hostinger fetches the newest `main`.
 
 **If Hostinger cannot run this project at all:** after two honest attempts, the next best option is a Hostinger **VPS** (a server that runs apps all the time), where Claude can guide you through the same steps. Do not split the project into separate repositories without asking Claude first.
 

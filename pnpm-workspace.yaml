@@ -9,3 +9,7 @@ catalog:
 
 allowBuilds:
   esbuild: true
+
+# Hostinger runs the build under an older pnpm (via corepack) than the one pinned in package.json.
+# Without this, the nested pnpm calls inside "build:web"/"build:mcp" stop with BAD_PM_VERSION.
+pmOnFail: ignore
