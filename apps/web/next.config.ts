@@ -16,6 +16,13 @@ const nextConfig: NextConfig = {
         { key: "X-Content-Type-Options", value: "nosniff" },
         { key: "X-Frame-Options", value: "DENY" },
         { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+        // Browsers ignore HSTS over plain http (localhost), so this only takes effect on the real https site.
+        // No includeSubDomains/preload: the MCP server lives on a sibling subdomain and manages its own HTTPS.
+        { key: "Strict-Transport-Security", value: "max-age=31536000" },
+        { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()" },
+        // A deliberately partial policy: framing, plugins and <base> hijacking are blocked. script-src and form-action are
+        // left out because Next.js uses inline scripts and the consent form redirects to Claude's callback address.
+        { key: "Content-Security-Policy", value: "frame-ancestors 'none'; base-uri 'self'; object-src 'none'" },
       ],
     },
   ],

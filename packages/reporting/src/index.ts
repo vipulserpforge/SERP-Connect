@@ -541,7 +541,7 @@ export function createMockReportService(env: ReportServiceDeps["env"] & Pick<Sha
     clarityQuota: sharedQuota,
     gsc: createGscAdapter("mock"),
     ga4: createGa4Adapter("mock"),
-    clarity: createClarityAdapter("mock", sharedQuota),
+    clarity: createClarityAdapter("mock", sharedQuota, overrides.now),
     bing: createBingAdapter({ client: new MockBingApiClient(), getAuth: async () => ({ method: "api_key", apiKey: "mockmockmockmockmockmockmockmock" }) }),
     env,
     logger: createLogger({ level: env.LOG_LEVEL }),

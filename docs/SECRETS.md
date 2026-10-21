@@ -46,7 +46,7 @@ All **server-only** unless noted. None are needed today; mock Google and an ephe
 | `SECRET_CURRENT_KEY_VERSION` | Version that encrypts new data (optional; defaults to last) | Only when rotating |
 | `SUPABASE_DB_URL` | Postgres pooler connection string including the DB password | When `DB_MODE=postgres` |
 | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Public values, safe in browsers | When `AUTH_MODE=supabase` |
-| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | The operator's single OAuth web client ([`GOOGLE-SETUP.md`](GOOGLE-SETUP.md)). Needed by **both** the web app and the MCP server. The secret is shown once at creation; rotate with *Add secret* on the client page | `DATA_MODE=live` |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | The operator's single OAuth web client ([`GOOGLE-SETUP-SIMPLE.md`](GOOGLE-SETUP-SIMPLE.md)). Needed by **both** the web app and the MCP server. The secret is shown once at creation; rotate with *Add secret* on the client page | `DATA_MODE=live` |
 | `GOOGLE_REDIRECT_URI` | Optional override. Default `${NEXT_PUBLIC_APP_URL}/api/oauth/google/callback`; must match a redirect URI registered on the Google client exactly | `DATA_MODE=live` |
 | `NEXT_PUBLIC_APP_URL`, `MCP_PUBLIC_URL` | Public URLs (not secret) | Deploy |
 | MCP OAuth issuer settings (`MCP_OAUTH_ISSUER_URL`, `MCP_RESOURCE_AUDIENCE`) | For verifying Claude's tokens | MCP auth phase |
@@ -54,4 +54,4 @@ All **server-only** unless noted. None are needed today; mock Google and an ephe
 | `SUPABASE_SERVICE_ROLE_KEY` | Not used by current code; add only if a server feature needs it. Never `NEXT_PUBLIC_`. | Probably never |
 | Alternative to `SECRET_KEYS` | A KMS key id plus a concrete `KmsClient` | If you prefer managed KMS |
 
-Never commit these. `.env*` is git-ignored except `.env.example`; a test scans committable files for secret shapes. Set production values in Hostinger hPanel → the app → **Environment variables** (stored encrypted by Hostinger), for both the web app and the MCP server; see [`HOSTINGER-DEPLOY.md`](HOSTINGER-DEPLOY.md).
+Never commit these. `.env*` is git-ignored except `.env.example`; a test scans committable files for secret shapes. Set production values in Vercel → the project → **Settings** → **Environment Variables** (web app) and in `/home/serp/mcp.env` on the VPS (MCP server, permissions 600); see [`mcp-web.md`](mcp-web.md).

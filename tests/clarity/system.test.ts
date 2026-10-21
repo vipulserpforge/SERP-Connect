@@ -10,7 +10,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { ClarityApiError } from "@serp/provider-clarity";
 import { connectWithToken } from "../mcp/harness.js";
 import type { Owner } from "../system/fake-google.js";
-import { ID_OF, buildWorld, type World } from "../system/world.js";
+import { ID_OF, NOW, buildWorld, type World } from "../system/world.js";
 import { SAMPLE_BODY, fakeToken } from "./fake-clarity.js";
 
 let w: World;
@@ -59,7 +59,7 @@ describe("saving and first use (fake Clarity)", () => {
     const { connectionId, propertyId, token } = await save("alice", fakeToken("alice"));
     expect(w.fakeClarity.calls).toHaveLength(0);
     expect(await statusOf("alice", connectionId)).toMatchObject({ status: "pending", lastValidatedAt: null });
-    expect((await w.clarityQuota.status(propertyId, new Date())).appTrackedUsed).toBe(0);
+    expect((await w.clarityQuota.status(propertyId, NOW)).appTrackedUsed).toBe(0);
 
     const a = await as("alice");
     const listed = await call(a, "list_clarity_projects");
@@ -99,7 +99,7 @@ describe("saving and first use (fake Clarity)", () => {
     const results = await Promise.all(Array.from({ length: 3 }, () => call(a, "get_clarity_insights", insights(propertyId))));
     expect(results.every((r) => !r.isError)).toBe(true);
     expect(w.fakeClarity.calls).toHaveLength(1);
-    expect((await w.clarityQuota.status(propertyId, new Date())).appTrackedUsed).toBe(1);
+    expect((await w.clarityQuota.status(propertyId, NOW)).appTrackedUsed).toBe(1);
   });
 
   it("concurrent DIFFERENT requests can never push the project past the local budget", async () => {
@@ -200,7 +200,7 @@ describe("provider failures", () => {
     expect(r.out.error).toMatchObject({ code: "PROVIDER_UNAVAILABLE", retryable: true });
     expect(w.fakeClarity.calls).toHaveLength(1);
     expect((await w.sql("select count(*)::int as n from public.report_cache where provider = 'clarity'"))[0]).toEqual({ n: 0 });
-    expect((await w.clarityQuota.status(propertyId, new Date())).counts).toMatchObject({ failed: 1 });
+    expect((await w.clarityQuota.status(propertyId, NOW)).counts).toMatchObject({ failed: 1 });
     expect(await statusOf("alice", connectionId)).toMatchObject({ status: "pending", lastErrorCode: null });
   });
 
@@ -233,7 +233,7 @@ describe("invalid input never reaches Clarity", () => {
     const r = await call(await as("alice"), "get_clarity_insights", insights(propertyId, extra));
     expect(r.isError).toBe(true);
     expect(w.fakeClarity.calls).toHaveLength(0);
-    expect((await w.clarityQuota.status(propertyId, new Date())).appTrackedUsed).toBe(0);
+    expect((await w.clarityQuota.status(propertyId, NOW)).appTrackedUsed).toBe(0);
   });
 });
 
@@ -269,7 +269,7 @@ describe("tenant isolation", () => {
     const second = await call(await as("bob"), "get_clarity_insights", insights(bob.propertyId));
     expect(second.out.cache.hit).toBe(false);
     expect(w.fakeClarity.calls).toHaveLength(2);
-    expect((await w.clarityQuota.status(alice.propertyId, new Date())).appTrackedUsed).toBe(2);
+    expect((await w.clarityQuota.status(alice.propertyId, NOW)).appTrackedUsed).toBe(2);
     expect((await w.sql("select count(*)::int as n from public.report_cache where provider = 'clarity'"))[0]).toEqual({ n: 2 });
   });
 

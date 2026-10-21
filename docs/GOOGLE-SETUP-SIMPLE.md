@@ -1,8 +1,8 @@
 # Google setup, step by step (for non-coders)
 
-This is the "follow it from top to bottom" version of the Google Cloud setup, for an **External** app (anyone with a Google account can eventually connect). You do not need to write code. You will click through Google's website, copy two values, paste them into one file on your computer and into your Hostinger hosting, and run a few short commands.
+This is the "follow it from top to bottom" version of the Google Cloud setup, for an **External** app (anyone with a Google account can eventually connect). You do not need to write code. You will click through Google's website, copy two values, paste them into one file on your computer and into your hosting (Vercel and your VPS), and run a few short commands.
 
-The technical version (with sources) is in [`GOOGLE-SETUP.md`](GOOGLE-SETUP.md). If this guide and Google's screen ever disagree, trust Google's screen: Google renames menus now and then. I could not log in to your Google account, so every click below comes from Google's documentation, not from watching it happen.
+The developer reference (what the code uses, with sources) is Part 12 at the end of this guide. If this guide and Google's screen ever disagree, trust Google's screen: Google renames menus now and then. I could not log in to your Google account, so every click below comes from Google's documentation, not from watching it happen.
 
 ---
 
@@ -28,7 +28,7 @@ Things worth knowing now:
 
 1. **Until you finish stage 3, real customers cannot connect.** Only the test users you added can. Plan your launch date around the review time, not around the website being ready.
 2. **Whether Google makes you go through verification depends on whether your two permissions are labelled "sensitive".** Google's documentation I read does not say either way for these two. The console tells you: in Part 5 you will look at the **Data Access** page and write down what it shows. If they are sensitive (assume so until you see otherwise), verification is required to publish.
-3. **Google checks your website.** For verification you need a live HTTPS website on a domain you own, with a public home page, a privacy policy page, and a verified domain. Your Hostinger deployment ([`HOSTINGER-DEPLOY.md`](HOSTINGER-DEPLOY.md)) provides those. This is why it is best to get the website online early, even before customers exist.
+3. **Google checks your website.** For verification you need a live HTTPS website on a domain you own, with a public home page, a privacy policy page, and a verified domain. Your live deployment ([`mcp-web.md`](mcp-web.md)) provides those. This is why it is best to get the website online early, even before customers exist.
 4. **The 100 test-user limit counts forever,** even if you later remove people. Add only people who really need to test.
 
 ### Two places where the Google values go
@@ -38,9 +38,9 @@ The same two Google values (Client ID and Client secret) are needed in two diffe
 | Where | When | How |
 |---|---|---|
 | **Your computer**: the file `.env.local` in the `SERP Connect` folder | While you test on your own computer (`http://localhost:3000`) | Part 7 of this guide |
-| **Hostinger** (your hosting): hPanel → the app → **Environment variables** | For the live website at `https://connect.serpforge.io` and the MCP server | Part 9b below and [`HOSTINGER-DEPLOY.md`](HOSTINGER-DEPLOY.md) |
+| **Your hosting**: Vercel → the project → **Settings** → **Environment Variables** (website), and the file `/home/serp/mcp.env` on the VPS (MCP server) | For the live website at `https://connect.serpforge.io` and the MCP server | Part 9b below and [`mcp-web.md`](mcp-web.md) |
 
-Your live site and MCP server run on your **Hostinger Cloud plan**. The website and the MCP server are **two separate apps** there, and **both** need the Google Client ID and secret. The file `.env.local` on your computer is never uploaded to Hostinger or GitHub.
+Your live website runs on **Vercel** and your MCP server on your **VPS**. They are **two separate apps**, and **both** need the Google Client ID and secret. The file `.env.local` on your computer is never uploaded to Vercel, the VPS or GitHub.
 
 ### What you will need
 
@@ -52,7 +52,7 @@ Your live site and MCP server run on your **Hostinger Cloud plan**. The website 
 ### Safety rules (please follow these)
 
 - The **Client secret** is a password. Never paste it in a chat, an email, a screenshot, or a document that gets shared. Never put it in GitHub.
-- You will paste it in two places only: the file named `.env.local` on your computer (Part 7, already blocked from GitHub), and Hostinger's **Environment variables** screen (Part 9b). Nowhere else.
+- You will paste it in two places only: the file named `.env.local` on your computer (Part 7, already blocked from GitHub), and your hosting's settings (Vercel's **Environment Variables** page and the VPS's `mcp.env`, Part 9b). Nowhere else.
 - If you ever leak it by mistake, you can replace it in 2 minutes (Part 7c).
 
 ---
@@ -183,7 +183,7 @@ Your app asks for read-only access to two things, plus the person's email addres
 
 ## Part 7. Put the two values into your project
 
-This part is for testing **on your own computer**. (The live Hostinger site gets the same two values in hPanel instead; see Part 9b and [`HOSTINGER-DEPLOY.md`](HOSTINGER-DEPLOY.md).)
+This part is for testing **on your own computer**. (The live site gets the same two values in Vercel's settings and in the VPS's `mcp.env` instead; see Part 9b and [`mcp-web.md`](mcp-web.md).)
 
 You will edit one text file called `.env.local` in the `SERP Connect` folder. It already exists and already holds your Supabase settings, so **do not delete anything in it**. You only change one line and add two.
 
@@ -222,7 +222,7 @@ The file name starts with a dot, so Finder hides it. Easiest way, in Terminal:
 
 ### 7c. If the secret leaks (or you pasted it somewhere by mistake)
 
-Console → Google Auth Platform → Clients → click your client → **Add secret** → copy the new one into `.env.local` **and into both Hostinger apps** → then **Disable** and **Delete** the old secret on that same page. Takes a few minutes.
+Console → Google Auth Platform → Clients → click your client → **Add secret** → copy the new one into `.env.local` **and into both live apps (Vercel and the VPS)** → then **Disable** and **Delete** the old secret on that same page. Takes a few minutes.
 
 ---
 
@@ -289,19 +289,19 @@ pnpm dev:web
 - [ ] Try a Google account that is **not** on the Test users list. You *should* be blocked with `access_denied`. That proves Testing mode is protecting you.
 - [ ] A week later, open the dashboard: the connection will show "needs attention" because Testing connections expire after 7 days. Click Disconnect, then Connect again. (This is expected until the app is public.)
 
-Then repeat the connect test on the **live site** once it is online ([`HOSTINGER-DEPLOY.md`](HOSTINGER-DEPLOY.md)).
+Then repeat the connect test on the **live site** once it is online ([`mcp-web.md`](mcp-web.md)).
 
 If something fails, see Part 10.
 
 ---
 
-## Part 9. Going public: put the Google values on Hostinger, then publish and verify
+## Part 9. Going public: put the Google values on Vercel and the VPS, then publish and verify
 
 Do 9a and 9b as soon as you have something working on your computer. Do 9c once the live site works. The review takes days, so do not leave it to the last minute.
 
 ### 9a. Things to prepare for Google's review
 
-- [ ] **A live website on HTTPS** on a domain you own, hosted on your Hostinger Cloud plan (`https://connect.serpforge.io`). Follow [`HOSTINGER-DEPLOY.md`](HOSTINGER-DEPLOY.md) first. Google visits your home page and privacy page.
+- [ ] **A live website on HTTPS** on a domain you own, hosted on Vercel (`https://connect.serpforge.io`). Follow [`mcp-web.md`](mcp-web.md) first. Google visits your home page and privacy page.
 - [ ] **Verify the domain** in Google Search Console (<https://search.google.com/search-console>) using the same Google account that owns the Cloud project, as an **Owner** of the domain property. Google requires this for the domain you listed in Part 3. (Add the domain as a "Domain" property and follow the DNS instructions; Hostinger's DNS editor is in hPanel → Domains → DNS.)
 - [ ] **A public home page** that explains what the app does and links to the privacy policy. The app's home page already does this once deployed.
 - [ ] **A privacy policy** at `https://connect.serpforge.io/privacy`. The app includes a **draft** page written from how the app really handles data. Read it, and have whoever advises you on legal matters review it. Add your contact email by setting `SUPPORT_EMAIL` in the website's Hostinger environment variables. It must clearly say how Google data is used, stored and shared.
@@ -309,11 +309,11 @@ Do 9a and 9b as soon as you have something working on your computer. Do 9c once 
 - [ ] **A sentence per permission** explaining why you need it, and why a narrower one will not do (for example: "analytics.readonly lets the customer's own GA4 reports be fetched on their behalf; there is no narrower read-only report scope").
 - [ ] **A working demo account** on the live site Google's reviewer could use if they ask (Google may request test access). Keep its email and password somewhere safe; share only through Google's review form if asked.
 
-### 9b. Put the Google values into Hostinger
+### 9b. Put the Google values into Vercel and the VPS
 
-1. In hPanel, open the **website** app → **Environment variables** → add (or edit) `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`, and check `DATA_MODE=live` and `NEXT_PUBLIC_APP_URL=https://connect.serpforge.io` → **Save** (saving redeploys the app and takes a few minutes).
-2. Open the **MCP server** app → **Environment variables** → add the **same** `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` → **Save**.
-3. Both apps must have both values, and the same `SECRET_KEYS`. Full list: [`HOSTINGER-DEPLOY.md`](HOSTINGER-DEPLOY.md) Part 2.
+1. In Vercel, open the project → **Settings** → **Environment Variables** → add (or edit) `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`, and check `DATA_MODE=live` and `NEXT_PUBLIC_APP_URL=https://connect.serpforge.io` → **Save**, then **Deployments** → latest → **⋯** → **Redeploy** (settings only apply to a new deployment).
+2. On the VPS, as the `serp` user: `nano ~/mcp.env`, set the **same** `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`, save (**Ctrl + O**, **Enter**, **Ctrl + X**), then run `pm2 restart serp-mcp --update-env`.
+3. Both apps must have both values, and the same `SECRET_KEYS`. Full list: [`mcp-web.md`](mcp-web.md) section 2.
 4. In Google (Clients → your client), confirm the redirect URI `https://connect.serpforge.io/api/oauth/google/callback` is listed (Part 6).
 5. Connect one test account on the live site, as in Part 8d.
 
@@ -331,8 +331,8 @@ Google also says that a passed brand check is only valid for 7 days before you p
 
 ### 9d. Good to know
 
-- Google generally recommends a **separate project for the public app**, without any `localhost` address in it. A clean way: when you reach 9c, create a second project `serp-connector-prod`, repeat Parts 1 to 6 there (External; only the `https://connect.serpforge.io/...` redirect), publish and verify **that** project, and put its Client ID/secret in both Hostinger apps. Keep the first project for testing on your computer. This also means test users and weekly expiries never touch your live customers.
-- Anyone who connected through the old project must click Connect again after you switch the Hostinger values, because their saved permission belongs to the old client.
+- Google generally recommends a **separate project for the public app**, without any `localhost` address in it. A clean way: when you reach 9c, create a second project `serp-connector-prod`, repeat Parts 1 to 6 there (External; only the `https://connect.serpforge.io/...` redirect), publish and verify **that** project, and put its Client ID/secret in both live apps (Vercel and the VPS). Keep the first project for testing on your computer. This also means test users and weekly expiries never touch your live customers.
+- Anyone who connected through the old project must click Connect again after you switch the live values, because their saved permission belongs to the old client.
 - Changing the app name, logo or website addresses after approval can send the app back for another review. Decide them before submitting.
 
 ---
@@ -361,7 +361,7 @@ When asking for help, copy the **error message text**, but never the Client secr
 
 After Part 8 you have proven that Google sign-in, property listing and (via the dashboard report endpoint) reporting work with **your** Google project. Still ahead, in this order:
 
-1. Put the website and MCP server online on Hostinger ([`HOSTINGER-DEPLOY.md`](HOSTINGER-DEPLOY.md)); overview in [`DEPLOYMENT.md`](DEPLOYMENT.md). Do this early: Google's review needs it.
+1. Put the website (Vercel) and MCP server (VPS) online ([`mcp-web.md`](mcp-web.md)); overview in [`DEPLOYMENT.md`](DEPLOYMENT.md). Do this early: Google's review needs it.
 2. Publish and submit for verification (Part 9c), then keep testing with your test users while you wait.
 3. Connect Claude to the MCP server ([`MCP.md`](MCP.md)): this needs Supabase's OAuth server switched on, which is currently off in your project. You can do this while Google reviews.
 
@@ -380,3 +380,26 @@ After Part 8 you have proven that Google sign-in, property listing and (via the 
 - **Test user**: a Google account you listed on the Audience page so it can connect while the app is in Testing.
 - **Verification**: Google's review before a public app that asks for sensitive permissions is trusted. Typically 3 to 5 business days.
 - **`.env.local`**: the private settings file on your computer. Never share or upload it.
+
+---
+
+## Part 12. Reference for developers: what the code uses
+
+| Fact | Value | Where in the code |
+|---|---|---|
+| OAuth flow | Authorization code + PKCE (S256), `access_type=offline`, `prompt=select_account consent`, `include_granted_scopes=true` | `packages/provider-google/src/index.ts` |
+| Client type | **Web application** (we hold a client secret on the server) | |
+| Scopes requested | `openid email` + **one** of `https://www.googleapis.com/auth/webmasters.readonly` (Search Console) or `https://www.googleapis.com/auth/analytics.readonly` (GA4), per Connect click | `connectScope()` |
+| Callback route | **`/api/oauth/google/callback`** (the only OAuth route in the app) | `apps/web/src/app/api/oauth/google/[action]/route.ts` |
+| Redirect URI sent to Google | `GOOGLE_REDIRECT_URI` if set, otherwise `NEXT_PUBLIC_APP_URL` + `/api/oauth/google/callback` | `apps/web/src/lib/server.ts` |
+| APIs called | Search Console API; Google Analytics **Data** API (`runReport`, `metadata`, `checkCompatibility`); Google Analytics **Admin** API (`accountSummaries`, `properties.get`) | `packages/provider-gsc`, `packages/provider-ga4` |
+| Authorized JavaScript origins | **None needed** (the flow is entirely server-side) | |
+| Which processes need the Google id and secret | **Both** the web app (code exchange) **and** the MCP server (it refreshes tokens when Claude asks for a report) | `apps/mcp-server/src/live.ts` |
+
+The redirect URIs to register, exactly (Google compares scheme, host, port, path, case and trailing slash exactly; no wildcards):
+- Local testing: `http://localhost:3000/api/oauth/google/callback` (Google allows http only for localhost)
+- Production: `https://<your-app-domain>/api/oauth/google/callback` (https required; no raw IP addresses)
+
+`pnpm google:check` prints the exact URI your current settings will send.
+
+Sources (checked 19 Oct 2026): [Using OAuth 2.0 for web server applications](https://developers.google.com/identity/protocols/oauth2/web-server), [Manage App Audience](https://support.google.com/cloud/answer/15549945), [Manage OAuth Clients](https://support.google.com/cloud/answer/15549257), [Production readiness](https://developers.google.com/identity/protocols/oauth2/production-readiness/policy-compliance), [Sensitive scope verification](https://developers.google.com/identity/protocols/oauth2/production-readiness/sensitive-scope-verification), [Search Console API authorization](https://developers.google.com/webmaster-tools/v1/how-tos/authorizing), [GA4 Data API quickstart](https://developers.google.com/analytics/devguides/reporting/data/v1/quickstart-client-libraries). Google's console changes names and layout often; where a label below differs, follow the intent. I could not sign in to your Google account, so every console click below is from the docs, not observed.

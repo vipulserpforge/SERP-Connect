@@ -10,6 +10,8 @@ import { getRepository, getServices, requireUser } from "@/lib/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
+// Vercel: allow up to 60 s (the free plan's ceiling). Provider calls and property sync can take longer than the 10 s default.
+export const maxDuration = 60;
 
 const GROUPS = [
   { key: "gsc", connection: "google", name: "Google Search Console", note: "Search performance: clicks, impressions, queries and pages." },

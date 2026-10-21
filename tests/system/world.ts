@@ -98,7 +98,7 @@ export async function buildWorld() {
     logger: createLogger({ level: "error" }),
     now: () => NOW,
     sleep: async (ms) => void sleeps.push(ms),
-    ...createLiveAdapters(credentials, { timeoutMs: 2000, gscClient, ga4Client, clarity: { connections: clarity, quota: clarityQuota, client: fakeClarity }, bing: { connections: bing, client: bingApi } }),
+    ...createLiveAdapters(credentials, { timeoutMs: 2000, gscClient, ga4Client, clarity: { connections: clarity, quota: clarityQuota, client: fakeClarity, now: () => NOW }, bing: { connections: bing, client: bingApi } }),
   });
 
   /** Connect a user's Google account for both products and discover its properties. */

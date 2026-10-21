@@ -575,7 +575,7 @@ describe("browser bundle hygiene", () => {
     const { join } = await import("node:path");
     const walk = async (dir: string): Promise<string[]> => {
       const entries = await readdir(dir, { withFileTypes: true });
-      const nested = await Promise.all(entries.map((e) => (e.isDirectory() ? walk(join(dir, e.name)) : [join(dir, e.name)])));
+      const nested = await Promise.all(entries.map((e) => (e.isDirectory() ? walk(join(dir, e.name)) : Promise.resolve([join(dir, e.name)]))));
       return nested.flat();
     };
     const files = (await walk(join(webDir, ".next/static"))).filter((f) => /\.(js|css|html|json)$/.test(f));

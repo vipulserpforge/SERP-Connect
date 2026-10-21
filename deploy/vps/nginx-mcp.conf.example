@@ -1,0 +1,32 @@
+# Nginx site for the MCP server. Copy to /etc/nginx/sites-available/mcp.serpforge.io (setup-server.sh does this).
+# HTTPS is added afterwards by:  certbot --nginx -d mcp.serpforge.io
+# Per-visitor request limit (by IP address): 20 requests/second on average, bursts of up to 40. Claude connects from a few
+# addresses and the MCP server also limits each signed-in user, so this only stops floods and password-style guessing.
+limit_req_zone $binary_remote_addr zone=mcp_per_ip:10m rate=20r/s;
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name mcp.serpforge.io;
+
+    # MCP requests are small JSON messages.
+    client_max_body_size 1m;
+
+    location / {
+        limit_req zone=mcp_per_ip burst=40 nodelay;
+        limit_req_status 429;
+
+        proxy_pass http://127.0.0.1:8787;
+        proxy_http_version 1.1;
+
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # MCP answers can stream: do not hold them back.
+        proxy_buffering off;
+        proxy_read_timeout 120s;
+        proxy_send_timeout 120s;
+    }
+}

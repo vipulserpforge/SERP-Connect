@@ -26,5 +26,12 @@ end;
 $$;
 
 -- Only Supabase Auth may run the hook; it must not be callable through the public API.
-grant execute on function public.custom_access_token_hook(jsonb) to supabase_auth_admin;
+-- supabase_auth_admin exists on Supabase but not in the plain Postgres used by the test suite, so the grant is guarded.
 revoke execute on function public.custom_access_token_hook(jsonb) from authenticated, anon, public;
+do $$
+begin
+  if exists (select 1 from pg_roles where rolname = 'supabase_auth_admin') then
+    grant execute on function public.custom_access_token_hook(jsonb) to supabase_auth_admin;
+  end if;
+end
+$$;

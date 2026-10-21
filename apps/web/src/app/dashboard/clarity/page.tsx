@@ -6,6 +6,8 @@ import { fetchClarityReportAction } from "@/app/clarity-actions";
 import { getServices, requireUser } from "@/lib/server";
 
 export const dynamic = "force-dynamic";
+// Vercel: allow up to 60 s (the free plan's ceiling). Provider calls and property sync can take longer than the 10 s default.
+export const maxDuration = 60;
 export const metadata = { title: "Clarity reports" };
 
 const MAX_ROWS_SHOWN = 100;

@@ -128,10 +128,8 @@ describe("GA4 discovery", () => {
   it("a disabled Data API is surfaced at connect time instead of failing later at the first report", async () => {
     const w = world();
     const { connectionId } = await w.connectGa4(USER_1, "alice@example.com");
-    const real = w.api.getMetadata.bind(w.api);
     w.api.getMetadata = async () => {
       throw new Ga4ApiError("api_disabled", 403);
-      void real;
     };
     await expect(w.discovery.syncGa4(USER_1, connectionId)).rejects.toMatchObject({ code: "PROVIDER_CAPABILITY_UNAVAILABLE" });
   });

@@ -3,7 +3,7 @@ import Link from "next/link";
 export const metadata = { title: "Privacy policy" };
 
 // DRAFT written from what the code does. The operator must review it (and have it reviewed where required) and set
-// SUPPORT_EMAIL (read at request time) before submitting the app to Google for verification. See docs/GOOGLE-SETUP.md.
+// SUPPORT_EMAIL (read at request time) before submitting the app to Google for verification. See docs/GOOGLE-SETUP-SIMPLE.md.
 export const dynamic = "force-dynamic";
 
 export default function PrivacyPage() {

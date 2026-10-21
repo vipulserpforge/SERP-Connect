@@ -18,9 +18,7 @@
     "@serp/db": "workspace:*",
     "@serp/observability": "workspace:*",
     "@serp/provider-bing": "workspace:*",
-    "@serp/provider-ga4": "workspace:*",
     "@serp/provider-google": "workspace:*",
-    "@serp/provider-gsc": "workspace:*",
     "@serp/reporting": "workspace:*",
     "@serp/secrets": "workspace:*",
     "zod": "catalog:"

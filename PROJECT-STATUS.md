@@ -3,16 +3,22 @@
 **Last updated:** 19 October 2026
 **Current phase:** Phase 8 (Google Cloud setup guide and OAuth readiness tooling) over Phase 7 (whole-system verification) over Phase 6 (remote MCP server with OAuth) built on Phase 5 (shared reporting layer) built on Phase 4 (GA4 integration, mock APIs), Phase 3 (Search Console) and Phase 2 (secure credential management), and tested locally with mock Google. **Migrations 1-4 were applied to your Supabase project (`dphftsifxfhxbhtgabso`) on 19 Oct 2026 via the Supabase connection.** Supabase's advisors report no warnings: only INFO notes (server-only tables intentionally have RLS but no policies; unused indexes on an empty database; two composite foreign keys on `mcp_profile_properties` could get covering indexes later). Google Cloud / OAuth is still not configured (deliberately the final phase).
 
-## Hosting decision: Hostinger Cloud plan (new)
+## Production-readiness review (21 Oct 2026)
 
-You will host the web app and the MCP server as **two Node.js Web Apps on a Hostinger Cloud plan**: [`docs/HOSTINGER-DEPLOY.md`](docs/HOSTINGER-DEPLOY.md) (non-coder steps), summary in [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md). Written from Hostinger's documentation; **nothing has been deployed to Hostinger yet**.
+Hosting target is now **web dashboard on Vercel + MCP server on a private VPS**: guide [`docs/mcp-web.md`](docs/mcp-web.md), files `apps/web/vercel.json` and `deploy/vps/`. Open items that need a person are in [`ISSUES.md`](ISSUES.md). **Nothing has been deployed to Vercel or a VPS, so the app is not declared production-ready.** Verified locally on Node 24: typecheck, lint, 785 unit tests, production builds of both apps, 52 + 45 end-to-end tests, the MCP server under PM2 with production settings, and the database connection (IPv4 pooler, verified TLS) against your real Supabase project (read-only).
+
+Found and fixed: the audience-hook migration broke 9 test files (it granted to a Supabase-only role); three Clarity tests only passed on 19 Oct because of a mixed frozen/real clock; the database host in `.env.local` is IPv6-only (Vercel cannot reach it) so the deployment settings now use the pooler; database TLS verification (was off); Vercel function time limits; security headers; request rate limiting on the MCP front door; unused dependencies; no linter (ESLint added and wired into CI).
+
+## Earlier hosting decision: Hostinger Cloud plan
+
+This was the first plan (two Node.js Web Apps on a Hostinger Cloud plan); its step-by-step guide has been removed in favour of [`docs/mcp-web.md`](docs/mcp-web.md) (Vercel + VPS). The technical summary stays in [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md). Nothing was ever successfully deployed to Hostinger (the first build stopped on a pnpm version clash, now fixed).
 - Added `scripts/start-web.mjs` and `scripts/start-mcp.mjs` (Hostinger runs one root directory and an entry file; this is a monorepo). Both default `NODE_ENV` to production so the mock-mode safeguards cannot be skipped. Verified locally: both start the built apps (web serves `/`, `/privacy`, `/api/health`; MCP serves `/healthz` and the OAuth metadata), and tests show the MCP script refuses mock modes without `NODE_ENV`.
 - Unverified on Hostinger itself: building with the repository root as the root directory, Hostinger's pnpm version, port handling, domain attachment, number of Web Apps allowed on your plan, and cold starts after idle (Hostinger stops idle apps; Claude's connection step allows about 10 seconds).
 - Your latest work is **not committed or pushed** to GitHub yet; Hostinger deploys from GitHub, so that is the next prerequisite.
 
 ## Phase 9: Microsoft Clarity integration (19 Oct 2026)
 
-**Status: built and verified with mocks. NOT yet verified against the real Clarity API, so it is not marked production-ready.** Full details: [`docs/CLARITY.md`](docs/CLARITY.md). (There is no `DEPLOYMENT-GUIDE.md`; deployment steps live in `docs/DEPLOYMENT.md` and `docs/HOSTINGER-DEPLOY.md`, both updated.)
+**Status: built and verified with mocks. NOT yet verified against the real Clarity API, so it is not marked production-ready.** Full details: [`docs/CLARITY.md`](docs/CLARITY.md). (There is no `DEPLOYMENT-GUIDE.md`; deployment steps live in `docs/DEPLOYMENT.md` and `docs/mcp-web.md`.)
 
 Done:
 - Official Data Export API client (rolling 24/48/72 h, up to 3 dimensions, 1,000-row cap, 10 requests/day), validated, normalised, with 400/401/403/429/5xx/network/timeout handling and no automatic retries (each would cost quota).
@@ -33,7 +39,7 @@ Known limitations: quota count is app-tracked only; reset time (assumed UTC day)
 
 ## Phase 8: Google Cloud setup and OAuth readiness
 
-Guide: [`docs/GOOGLE-SETUP.md`](docs/GOOGLE-SETUP.md). Deployment: [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
+Guide: [`docs/GOOGLE-SETUP-SIMPLE.md`](docs/GOOGLE-SETUP-SIMPLE.md) (developer reference in its Part 12). Deployment: [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
 
 **No Google Cloud project, OAuth client or credentials exist yet, and no real Google sign-in, token exchange, property discovery or report has been run.** The step-by-step guide is written from Google's current documentation (pages cited in the guide); I could not sign in to Google, so console clicks are unobserved.
 
@@ -78,7 +84,7 @@ This application is **not** declared production-ready. Blocking or unverified:
 1. **No real Google test.** Google Cloud project, OAuth client, API enablement and a live run with accounts A/B/C are the final phase. Real response shapes, quotas, latency and consent behaviour are unverified.
 2. **No real Claude test.** Needs the MCP server on public HTTPS and Supabase's OAuth server (currently disabled), plus an access-token hook to bind tokens to this server (see `docs/MCP.md`).
 3. **Real sign-up against your Supabase project is still unverified** (profile row, connection and ciphertext rows). Auth is tested against a fake, the database against PGlite.
-4. **Remote database TLS does not verify the server certificate** (`packages/db/src/pg.ts`, `rejectUnauthorized: false`). Pin Supabase's CA before handling customer data.
+4. ~~Remote database TLS does not verify the server certificate~~ **Fixed 21 Oct 2026:** the certificate is verified against Node's roots plus the bundled Supabase root CA (`packages/db/src/supabase-ca.ts`, expires 2031; unit-tested and checked against your real database; no setting can turn the check off).
 5. **Key management:** only the local key ring exists; the KMS client is not written.
 6. Auth hardening not done: rate limiting/CAPTCHA, password reset page, account deletion.
 7. Rate limits, concurrency limits and the Clarity budget are per process (a Postgres-backed Clarity budget is ready in SQL, not wired). No load testing.

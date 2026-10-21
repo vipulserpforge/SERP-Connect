@@ -324,10 +324,8 @@ describe("permissions and API failures become clear, safe errors", () => {
       client.failures = [...Array(skip).fill(undefined), new Ga4ApiError(kind as never, 403, undefined, "someReason")].filter(Boolean) as Ga4ApiError[];
       if (skip === 2) {
         // let metadata and compatibility succeed, then fail the report
-        const original = client.runReport.bind(client);
-        client.runReport = async (...a) => {
+        client.runReport = async () => {
           throw new Ga4ApiError(kind as never, 403, undefined, "someReason");
-          void original;
         };
       }
       const err = await reject(adapter.query(parse(), ctxFor()));

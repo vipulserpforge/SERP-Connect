@@ -16,9 +16,6 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "clean": "rm -rf dist *.tsbuildinfo"
   },
-  "dependencies": {
-    "@serp/contracts": "workspace:*"
-  },
   "devDependencies": {
     "typescript": "catalog:",
     "@types/node": "catalog:"

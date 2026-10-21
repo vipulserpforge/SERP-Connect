@@ -4,6 +4,8 @@ import { newRequestId } from "@serp/observability";
 import { getServices, requireUser } from "@/lib/server";
 
 export const dynamic = "force-dynamic";
+// Vercel: allow up to 60 s (the free plan's ceiling). Provider calls and property sync can take longer than the 10 s default.
+export const maxDuration = 60;
 export const metadata = { title: "Bing reports" };
 
 const MAX_ROWS_SHOWN = 200;
@@ -134,7 +136,6 @@ export default async function BingReportPage({ searchParams }: { searchParams: P
   const window = WINDOWS.find((w) => w.key === sp.days) ?? WINDOWS[1];
   const meta = REPORTS.find((r) => r.key === report)!;
   const link = (over: { report?: string; days?: string }) => `/dashboard/bing?${new URLSearchParams({ property: prop.id, report: over.report ?? report, days: over.days ?? window.key })}`;
-  const propertyId = prop.externalPropertyId;
 
   const requestId = newRequestId();
   let result: NormalizedReportResult | null = null;

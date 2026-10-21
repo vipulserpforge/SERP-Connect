@@ -17,7 +17,6 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@serp/contracts": "workspace:*",
     "zod": "catalog:"
   },
   "devDependencies": {

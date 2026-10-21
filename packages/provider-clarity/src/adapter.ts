@@ -122,13 +122,13 @@ export class MockClarityAdapter implements ClarityAdapter {
   readonly provider = "clarity" as const;
   readonly mock = true;
 
-  constructor(private readonly quota?: ClarityQuotaStore) {}
+  constructor(private readonly quota?: ClarityQuotaStore, private readonly clock: () => Date = () => new Date()) {}
 
   async query(query: ClarityQuery, ctx: AuthorizedQueryContext): Promise<NormalizedReportResult> {
     if (this.quota) {
-      const r = await this.quota.reserve({ projectKey: ctx.property.externalPropertyId, userId: ctx.userId, connectionId: ctx.connection.id });
+      const r = await this.quota.reserve({ projectKey: ctx.property.externalPropertyId, userId: ctx.userId, connectionId: ctx.connection.id, now: this.clock() });
       if (!r.allowed) throw exhausted(`This app's daily Clarity request budget for this project (${r.localBudget}) is used up.`);
-      await this.quota.complete(r.reservationId, "succeeded", 200);
+      await this.quota.complete(r.reservationId, "succeeded", 200, this.clock());
     }
     const dims = query.dimensions;
     const label = (i: number) => (j: string) => `${j} ${["A", "B", "C"][i]}`;
@@ -156,10 +156,10 @@ export class MockClarityAdapter implements ClarityAdapter {
   }
 }
 
-export function createClarityAdapter(mode: "mock", quota?: ClarityQuotaStore): ClarityAdapter;
+export function createClarityAdapter(mode: "mock", quota?: ClarityQuotaStore, now?: () => Date): ClarityAdapter;
 export function createClarityAdapter(mode: "live", deps: LiveClarityDeps): ClarityAdapter;
-export function createClarityAdapter(mode: "mock" | "live", arg?: ClarityQuotaStore | LiveClarityDeps): ClarityAdapter {
-  if (mode === "mock") return new MockClarityAdapter(arg as ClarityQuotaStore | undefined);
+export function createClarityAdapter(mode: "mock" | "live", arg?: ClarityQuotaStore | LiveClarityDeps, now?: () => Date): ClarityAdapter {
+  if (mode === "mock") return new MockClarityAdapter(arg as ClarityQuotaStore | undefined, now);
   if (!arg) {
     throw new ConnectorException("PROVIDER_CAPABILITY_UNAVAILABLE", "Live Clarity access needs a database and encryption keys, which are not configured.", { provider: "clarity" });
   }

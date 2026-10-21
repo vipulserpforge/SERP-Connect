@@ -4,6 +4,8 @@ import { createLogger, newRequestId } from "@serp/observability";
 import { getServices, getSessionUser } from "@/lib/server";
 
 export const dynamic = "force-dynamic";
+// Vercel: allow up to 60 s (the free plan's ceiling). Provider calls and property sync can take longer than the 10 s default.
+export const maxDuration = 60;
 
 const logger = createLogger({ bindings: { service: "web", area: "oauth" } });
 

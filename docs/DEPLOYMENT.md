@@ -1,6 +1,12 @@
 # Deployment guide
 
-**Hosting: Hostinger Cloud plan, two Node.js Web Apps** (one for the dashboard, one for the MCP server). The click-by-click guide for non-coders is [`HOSTINGER-DEPLOY.md`](HOSTINGER-DEPLOY.md); this page is the technical summary.
+**Recommended hosting: the web dashboard on Vercel (Hobby plan is for non-commercial use; Pro for business use) and the MCP server on your own VPS** (always-on Node process behind Nginx and PM2). The click-by-click guide for non-coders is [`mcp-web.md`](mcp-web.md). The files for it are `apps/web/vercel.json` and `deploy/vps/*`.
+
+**Alternative: Hostinger Cloud plan, two Node.js Web Apps.** No step-by-step guide is kept for it any more (see the git history for the old `docs/HOSTINGER-DEPLOY.md`). The settings below describe that alternative, and the variables further down apply to both options. This page is the technical summary.
+
+**Database address (important on every host):** use Supabase's **pooler** connection string (IPv4, port 6543). The direct `db.<ref>.supabase.co` address is IPv6-only and cannot be reached from Vercel. The server certificate is verified against Supabase's root CA, which ships in `packages/db/src/supabase-ca.ts`.
+
+**Vercel notes:** Root Directory `apps/web`, settings imported from `web.env`, plus `ENABLE_EXPERIMENTAL_COREPACK=1`. Routes that call Google, Bing or Clarity set `maxDuration` (30 or 60 s, within the free plan's 60 s ceiling). Rate limits and the in-memory pieces are per function instance there.
 
 Two services share one Postgres (Supabase) and one set of encryption keys:
 
@@ -20,9 +26,9 @@ Both must run over HTTPS in production. Production refuses mock modes (`AUTH_MOD
 ## Order of work
 
 1. **Supabase**: migrations, Auth URLs, key: [`SUPABASE-SETUP.md`](SUPABASE-SETUP.md). After the sites have addresses, set Site URL and the `/auth/callback` redirect to the live app address.
-2. **Google Cloud**: project, APIs, consent screen, client: [`GOOGLE-SETUP.md`](GOOGLE-SETUP.md). Run `pnpm google:check --probe --secret` with production values before deploying.
+2. **Google Cloud**: project, APIs, consent screen, client: [`GOOGLE-SETUP-SIMPLE.md`](GOOGLE-SETUP-SIMPLE.md). Run `pnpm google:check --probe --secret` with production values before deploying.
 3. **Encryption keys**: generate `SECRET_KEYS` once ([`SECRETS.md`](SECRETS.md)), store it in a password/secret manager. Both services need the **same** value; losing it makes stored Google tokens unrecoverable.
-4. **Deploy the web app**, then **the MCP server** ([`HOSTINGER-DEPLOY.md`](HOSTINGER-DEPLOY.md)), setting the variables below in each app's hPanel **Environment variables** (import a `.env` file, then delete it; never commit them).
+4. **Deploy the web app**, then **the MCP server** ([`mcp-web.md`](mcp-web.md)), setting the variables below in Vercel's **Environment Variables** (website) and in `~/mcp.env` on the VPS (MCP server). Delete any `.env` file you used afterwards; never commit them.
 5. **Claude connector**: Supabase OAuth server, audience binding, `pnpm mcp:check`: [`MCP.md`](MCP.md).
 6. **Smoke test**: sign up, Connect Search Console and GA4 with a test user, request a report, disconnect. Then publish and verify the Google app (GOOGLE-SETUP section 7).
 
@@ -42,7 +48,7 @@ Both must run over HTTPS in production. Production refuses mock modes (`AUTH_MOD
 | `BING_REDIRECT_URI` | optional | | no | Default `<app>/api/oauth/bing/callback`; register it at Bing exactly |
 | `PROVIDER_BING_ENABLED` | yes | yes | no | Keep `false` until `pnpm bing:check --yes` passes ([`BING.md`](BING.md)) |
 | `CLARITY_LOCAL_DAILY_BUDGET` | optional | optional | no | Default 1000 = no app-side limit (Clarity itself still allows 10/day per project); set 8 to keep spare |
-| `SUPABASE_DB_URL` | yes | yes | **yes** | Pooler URI including the database password |
+| `SUPABASE_DB_URL` | yes | yes | **yes** | **Pooler** URI (IPv4, port 6543) including the database password. Optional: `SUPABASE_DB_CA`, `DB_POOL_MAX` (see `.env.example`) |
 | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | yes | | no | Public values; set at **build** time for the web app |
 | `NEXT_PUBLIC_MCP_URL` | yes | | no | Shown on the dashboard |
 | `SUPPORT_EMAIL` | yes | | no | Shown on `/privacy` |
@@ -52,4 +58,4 @@ Blank variables are treated as unset. Call `pnpm google:check` with the producti
 
 ## Known gaps before real customers
 
-See "Outstanding issues" in [`../PROJECT-STATUS.md`](../PROJECT-STATUS.md): notably TLS verification for the remote database, KMS-backed keys, auth rate limiting, and the unverified Google/Claude paths.
+See "Outstanding issues" in [`../PROJECT-STATUS.md`](../PROJECT-STATUS.md) and [`../ISSUES.md`](../ISSUES.md): notably KMS-backed keys, auth rate limiting, and the unverified Google/Claude paths.

@@ -14,19 +14,19 @@ This page has two parts: the **checklist** (what you do, in order) and the **tec
 ### Done
 
 - [x] **MCP server code is finished and tested.** Automated tests run a full fake sign-in with Claude's official connection code, plus 80 safety tests (for example: one customer can never see another customer's data).
-- [x] **Code is on GitHub** (`main`), ready for Hostinger.
+- [x] **Code is on GitHub** (`main`), ready for Vercel and your VPS.
 - [x] **Settings file for the MCP server is ready:** `~/Documents/private-serp/mcp.env` (11 settings, with your real addresses).
 - [x] **Audience hook is installed in Supabase.** The small function `custom_access_token_hook` is in your database and tested. It marks tokens given to Claude as "valid only for `https://mcp.serpforge.io/mcp`". Normal website logins are not affected.
 - [x] **Privacy and contact details are set** (`vipul@serpforge.io`).
 
 ### Still to do (in this order)
 
-- [ ] **1. Put the website online** at `connect.serpforge.io`. Follow Step 3 of [`HOSTINGER-DEPLOY.md`](HOSTINGER-DEPLOY.md).
-- [ ] **2. Put the MCP server online** at `mcp.serpforge.io`. Follow Step 4 of [`HOSTINGER-DEPLOY.md`](HOSTINGER-DEPLOY.md).
-- [ ] **3. Tell Supabase your website address.** Step 5.1 of [`HOSTINGER-DEPLOY.md`](HOSTINGER-DEPLOY.md).
+- [ ] **1. Put the website online** at `connect.serpforge.io`. Follow section 6 (Vercel) of [`mcp-web.md`](mcp-web.md).
+- [ ] **2. Put the MCP server online** at `mcp.serpforge.io`. Follow section 5 (VPS) of [`mcp-web.md`](mcp-web.md).
+- [ ] **3. Tell Supabase your website address.** Section 7.1 of [`mcp-web.md`](mcp-web.md).
 - [ ] **4. Switch on the audience hook** (see "How to" below).
 - [ ] **5. Switch on the Supabase OAuth Server** (see "How to" below).
-- [ ] **6. Add the live address in Google.** Step 6 of [`HOSTINGER-DEPLOY.md`](HOSTINGER-DEPLOY.md).
+- [ ] **6. Add the live address in Google.** Section 7.4 of [`mcp-web.md`](mcp-web.md).
 - [ ] **7. Run the connection check** (see "How to" below).
 - [ ] **8. Add the connector in Claude** and test it (see "How to" below).
 
@@ -76,7 +76,7 @@ It reads out a list of checks. Lines marked **FAIL** tell you what is still miss
 |---|---|---|
 | OAuth server not enabled / `feature_disabled` | Supabase OAuth Server is off | "Switch on the OAuth Server" above |
 | Audience not ready | The hook is not switched on | "Switch on the audience hook" above |
-| Cannot reach server | The MCP app is not running | Check the app in Hostinger (Step 9 of `HOSTINGER-DEPLOY.md`) |
+| Cannot reach server | The MCP app is not running | Check the app on the VPS: `pm2 status` (see section 9 of `mcp-web.md`) |
 | No registration method | Dynamic Client Registration is off | Allow it in the OAuth Server settings |
 
 ### Add it in Claude (checklist item 8)
@@ -109,7 +109,6 @@ Not tested yet: a **real** Claude connection. Everything so far was tested with 
 ## Later (not needed to launch)
 
 - [ ] **Stronger key storage:** move the encryption key into a professional key-management service, and add bot protection (CAPTCHA) and rate limiting on sign-in.
-- [ ] **Keep the server awake** if the connector fails after quiet periods. See "Sleeping apps" in [`HOSTINGER-DEPLOY.md`](HOSTINGER-DEPLOY.md).
 
 ---
 

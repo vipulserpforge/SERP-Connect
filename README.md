@@ -6,7 +6,7 @@ Everything runs on **mock data** today. No Google Cloud project or provider cred
 
 ## Requirements
 
-- Node.js 22.12+ (`.nvmrc` pins 22)
+- Node.js 22.12+ (`.nvmrc` pins 22; 24 is also tested)
 - pnpm 12 (`npm i -g pnpm`)
 
 ## Commands
@@ -20,6 +20,7 @@ Everything runs on **mock data** today. No Google Cloud project or provider cred
 | `pnpm build:web` / `pnpm build:mcp` | Build one app (and the packages it needs) independently |
 | `pnpm start:web` / `pnpm start:mcp` | Run a built app |
 | `pnpm typecheck` | Type-check everything |
+| `pnpm lint` | ESLint (bug-focused rules: forgotten `await`, unreachable code, unused variables) |
 | `pnpm test` | Unit, RLS and tenant-isolation tests (no build needed; Postgres runs in-process) |
 | `pnpm test:e2e` | Builds the web app and tests sign-up/login/logout end to end against a fake Auth server |
 
@@ -42,7 +43,7 @@ packages/
   observability   Redacting JSON logger
 tests/            Tenant isolation and reporting tests
 supabase/         SQL migrations (schema, RLS, functions); see docs/SUPABASE-SETUP.md
-docs/             PRD, TRD, SECRETS.md (credentials), GSC.md (Search Console), GA4.md (Analytics), REPORTING.md (shared reporting layer), MCP.md (remote MCP server, auth, Claude setup), TESTING.md (what tests cover, mock vs real), GOOGLE-SETUP-SIMPLE.md (step-by-step for non-coders, External consent screen), GOOGLE-SETUP.md (technical reference), DEPLOYMENT.md (services, order of work, variables), HOSTINGER-DEPLOY.md (step-by-step Hostinger Cloud deployment)
+docs/             PRD, TRD, SECRETS.md (credentials), GSC.md (Search Console), GA4.md (Analytics), REPORTING.md (shared reporting layer), MCP.md (remote MCP server, auth, Claude setup), TESTING.md (what tests cover, mock vs real), GOOGLE-SETUP-SIMPLE.md (step-by-step Google Cloud setup for non-coders, with a developer reference at the end), DEPLOYMENT.md (services, order of work, variables), mcp-web.md (step-by-step: website on Vercel, MCP server on a VPS)
 ```
 
 Shared packages compile to `dist/` and expose only their public entry points, so both apps consume the same code.

@@ -17,6 +17,7 @@
     "start:web": "pnpm --filter @serp/web run start",
     "start:mcp": "pnpm --filter @serp/mcp-server run start",
     "typecheck": "pnpm build:packages && pnpm -r run typecheck",
+    "lint": "eslint .",
     "test": "vitest run",
     "clean": "pnpm -r run clean",
     "test:e2e": "pnpm build:web && pnpm build:mcp && vitest run --config vitest.e2e.config.mts && E2E_DB=postgres vitest run --config vitest.e2e.config.mts tests/e2e/auth-flow.e2e.ts",
@@ -30,9 +31,11 @@
     "@electric-sql/pglite-socket": "^0.2.13",
     "@modelcontextprotocol/sdk": "^1.32.0",
     "@types/node": "catalog:",
+    "eslint": "^9.39.5",
     "jose": "6.2.12",
     "tsx": "^4.23.0",
     "typescript": "catalog:",
+    "typescript-eslint": "^8.72.0",
     "vitest": "^4.0.0",
     "zod": "catalog:"
   }

@@ -13,7 +13,7 @@ export interface LiveAdapterOptions {
   gscClient?: GscApiClient;
   ga4Client?: Ga4ApiClient;
   /** Clarity uses per-project API tokens (not Google OAuth) and a durable request budget. */
-  clarity: { connections: ClarityConnectionService; quota: ClarityQuotaStore; client?: ClarityApiClient };
+  clarity: { connections: ClarityConnectionService; quota: ClarityQuotaStore; client?: ClarityApiClient; /** Clock for quota windows; tests only. */ now?: () => Date };
   /** Bing Webmaster: per-connection credentials (OAuth or API key), chosen by the connection, never by the caller. */
   bing: { connections: BingConnectionService; client?: BingApiClient };
 }
@@ -35,6 +35,7 @@ export function createLiveAdapters(credentials: CredentialService, options: Live
       quota: options.clarity.quota,
       getToken: (ctx: AuthorizedQueryContext) => options.clarity.connections.getToken(ctx.userId, ctx.connection.id),
       hooks: options.clarity.connections.hooks,
+      ...(options.clarity.now && { now: options.clarity.now }),
     }),
     bing: createBingAdapter({
       client: options.bing.client ?? new HttpBingApiClient({ timeoutMs: options.timeoutMs }),

@@ -5,6 +5,8 @@ import { getEnv } from "@/lib/env";
 import { getServices, getSessionUser } from "@/lib/server";
 
 export const dynamic = "force-dynamic";
+// Vercel: allow up to 30 s (the free plan's ceiling is 60 s). Provider calls have their own 20 s deadline.
+export const maxDuration = 30;
 
 const logger = createLogger({ bindings: { service: "web", area: "reports" } });
 const MAX_BODY_BYTES = 32 * 1024;
