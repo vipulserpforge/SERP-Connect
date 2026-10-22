@@ -46,8 +46,8 @@ Tested on my computer, in a clean copy of the project:
 |---|---|
 | **GitHub** | Your code is already on `vipulserpforge/SERP-Connect`, branch `main`. |
 | **Vercel account** | Free signup at <https://vercel.com> (use "Continue with GitHub"). See the note on plans below. |
-| **A VPS** | Operating system **Ubuntu 24.04** (or 22.04; **not** CentOS, AlmaLinux or Windows), **1 GB RAM minimum, 2 GB comfortable**, a public IP address, and `root` login. When ordering, set the **Hostname** to `mcp.visibll.in`, choose a long unique root password, leave NS1/NS2 as they are, and add no extra disk or IP. |
-| **Access to DNS for `visibll.in`** | Wherever your domain's DNS is managed (your domain registrar or host). You will add two records: `mcp` (to the VPS) and `connect` (to Vercel). |
+| **A VPS** | **Done:** you bought a Coral VPS from ewebGuru with Ubuntu 24. IP `172.93.223.194`, user `root`, password in their email. (Needs 1 GB RAM minimum, 2 GB comfortable.) |
+| **Namecheap login** | Your domain `visibll.in` is at Namecheap. You will add two DNS records there: `mcp` (to the VPS) and `connect` (to Vercel). |
 | **An email-sending service (SMTP)** | For sign-up and password emails (section 7.5). Free options: Resend, Brevo. |
 | **Your two settings files** | `~/Documents/private-serp/web.env` and `~/Documents/private-serp/mcp.env` (already created). |
 | **A Mac Terminal** | Press **Cmd + Space**, type `Terminal`, press Enter. You paste commands into it. |
@@ -64,8 +64,8 @@ Doing the steps in this order avoids most problems:
 
 | # | Do this | Section |
 |---|---|---|
-| 1 | Buy the VPS (Ubuntu 24.04) and note its IP address | 1 |
-| 2 | Add the DNS record `mcp` → your VPS IP | 4 |
+| 1 | Push the latest code to GitHub (ask Claude: "commit and push all changes to main") | 5.0 |
+| 2 | In Namecheap add the record `mcp` → `172.93.223.194` | 4 |
 | 3 | Set up the VPS, start the MCP server, turn on HTTPS | 5 |
 | 4 | Put the website on Vercel, add `connect.visibll.in` | 6 |
 | 5 | Supabase: website address, email (SMTP), audience hook, OAuth Server | 7.1 to 7.5 |
@@ -115,159 +115,251 @@ Real secrets are **never** stored in the project. They stay in `web.env` / `mcp.
 
 ---
 
-## 4. Part A: Point your addresses (DNS)
+## 4. Part A: Point `mcp.visibll.in` to your VPS (Namecheap DNS)
 
-You will add two DNS records. Do the MCP one first, because it takes a while to spread across the internet.
+**What is DNS?** It is the phone book of the internet. You tell it: "when someone asks for `mcp.visibll.in`, send them to my VPS at `172.93.223.194`". Your domain is at Namecheap, so you do this in Namecheap.
 
-1. Log in to wherever DNS for `visibll.in` is managed. In Hostinger this is hPanel → **Domains** → `visibll.in` → **DNS / Nameservers** → **DNS records**.
-2. **Add this record** (replace `YOUR.VPS.IP` with your VPS's public IP address, from your VPS provider's dashboard):
+Your VPS details (from ewebGuru's "Manage Product" page and their email):
 
-   | Type | Name | Points to / Value | TTL |
-   |---|---|---|---|
-   | **A** | `mcp` | `YOUR.VPS.IP` | 300 (or the lowest allowed) |
+| Item | Value |
+|---|---|
+| **VPS IP address** | `172.93.223.194` |
+| **Login user** | `root` |
+| **Operating system** | Ubuntu 24 |
+| **Hostname** | `mcp.visibll.in` |
 
-3. The website record comes later in Part D, when Vercel tells you the exact value.
-4. **Check it spread:** open <https://dnschecker.org>, type `mcp.visibll.in`, choose type **A**, press Search. When most places show your IP address, it is ready. It can take from 5 minutes to a few hours.
+> If ewebGuru ever reinstalls or moves your VPS, the IP can change. Always use the IP shown on their "Manage Product" page.
 
-> Delete any old record for `mcp` (for example one pointing to Hostinger). Two records for the same name cause random failures.
+### 4.1 Open the DNS page in Namecheap
+
+1. Go to <https://www.namecheap.com> and sign in.
+2. Left menu → **Domain List**.
+3. Find **visibll.in** and click **Manage**.
+4. Open the tab **Advanced DNS**.
+
+### 4.2 Check which DNS Namecheap is using
+
+1. Still on the domain page, open the **Domain** tab and look at **Nameservers**.
+2. It should say **Namecheap BasicDNS** (or **Namecheap Web Hosting DNS**). Then the **Advanced DNS** tab is the right place, and you can continue.
+3. If it says **Custom DNS** (for example Cloudflare), your DNS records live there, not in Namecheap. Add the same records in that service instead, or ask Claude for help.
+
+### 4.3 Add the record for the MCP server
+
+1. Back in **Advanced DNS**, find **Host Records** and click **Add New Record**.
+2. Fill in:
+
+   | Field | Value |
+   |---|---|
+   | **Type** | **A Record** |
+   | **Host** | `mcp` (just `mcp`, not `mcp.visibll.in`) |
+   | **Value** | `172.93.223.194` |
+   | **TTL** | **Automatic** |
+
+3. Click the green **tick** (Save).
+
+> If you already see a record with Host `mcp` (or a "parking page" record for `@` or `www`), you only need to care about `mcp`. Delete any other `mcp` record so only one remains.
+
+### 4.4 Check that it spread
+
+1. On your Mac, open **Terminal** (press **Cmd + Space**, type `Terminal`, press Enter).
+2. Paste this and press Enter:
+
+   ```
+   nslookup mcp.visibll.in 8.8.8.8
+   ```
+3. **You should see** `Address: 172.93.223.194` at the bottom. If it says `can't find` or shows another IP, wait 5 to 10 minutes and run it again. It can take up to an hour.
+
+Do not go to step 5.9 (HTTPS) until this shows your IP. You can do steps 5.1 to 5.8 while waiting.
 
 ---
 
-## 5. Part B: Set up the VPS
+## 5. Part B: Set up the VPS (Mac Terminal, step by step)
 
-All commands in this part are typed into **Terminal on your Mac**, after you connect to the VPS. Where you see `YOUR.VPS.IP`, use your real IP.
+You will type commands into **Terminal on your Mac**. Terminal is a window where you type instructions instead of clicking.
+
+**Three tips:**
+- To **paste** into Terminal use **Cmd + V**. To **copy** from a web page or email use **Cmd + C**.
+- When Terminal asks for a **password**, nothing appears as you type or paste. That is normal. Press **Enter** when done.
+- Lines shown in grey boxes are commands. Copy a box completely, paste it, press **Enter**.
+
+### 5.0 Before you start: put the latest code on GitHub
+
+Your VPS downloads the project from GitHub, so GitHub must have the latest files (including the new `visibll.in` addresses).
+
+In Claude Code in this project, type: **"commit and push all changes to main"**. Wait until it says it is pushed. If you skip this, the VPS gets old files and the setup will point to the wrong domain.
 
 ### 5.1 Connect to the VPS
 
-1. In Terminal type: `ssh root@YOUR.VPS.IP` and press Enter.
-2. If it asks "Are you sure you want to continue connecting?", type `yes` and press Enter.
-3. Enter the password (or your provider's key). Typed passwords stay invisible. That is normal.
-4. **You should see** a prompt like `root@something:~#`. You are now "inside" the VPS. Everything you type now runs there.
+1. In Terminal, type this and press **Enter**:
 
-> If your provider gave you a normal user instead of `root`, put `sudo` in front of the commands that need it, or run `sudo -i` first to become root.
+   ```
+   ssh root@172.93.223.194
+   ```
+2. It may say: `Are you sure you want to continue connecting (yes/no/[fingerprint])?` Type `yes` and press **Enter**. (It only asks the first time.)
+3. It asks `root@172.93.223.194's password:`. Copy the password from ewebGuru's email (**Cmd + C**), click in Terminal, paste (**Cmd + V**), press **Enter**. Nothing is shown while you paste. That is normal.
+4. **You should see** a welcome text and a line like `root@mcp:~#`. You are now inside the VPS. Everything you type now runs **on the VPS**, not on your Mac.
 
-### 5.2 Create the app user and install Git
+If it says `Permission denied, please try again`: the password was pasted wrongly. Try again by **pasting** (do not type it, it has many symbols). If it keeps failing, ask ewebGuru support to reset the root password. If it says `Connection timed out`, check the IP and tell ewebGuru support that port 22 (SSH) seems blocked.
 
-This makes a separate, limited user called `serp` to run the app (safer than running as root).
+> To leave the VPS at any time, type `exit` and press Enter. To get back in, repeat step 5.1.
 
-Paste these two lines:
+### 5.2 Change the root password (do this now)
+
+The password in the email was sent in plain text, so replace it with your own.
+
+1. Type `passwd` and press **Enter**.
+2. Type a new long password (16+ characters, letters, numbers, symbols). Press **Enter**. Type it again. Press **Enter**.
+3. **You should see** `password updated successfully`.
+4. Save the new password in your password manager.
+
+### 5.3 Check the VPS is what you expect
+
+Paste these three commands, one at a time:
+
+```
+lsb_release -d
+```
+**You should see** `Ubuntu 24.04…` (22.04 is also fine).
+
+```
+free -h
+```
+**You should see** a line `Mem:` with a total of about `1.9Gi` or more. (About `0.9Gi` means a 1 GB machine. It still works, but it is tight.)
+
+```
+df -h /
+```
+**You should see** at least a few GB under `Avail`.
+
+### 5.4 Create the app user and install Git
+
+This makes a separate limited user called `serp` that runs the app (safer than running as root).
+
+Paste these two lines (one at a time, press Enter after each):
 
 ```
 adduser --disabled-password --gecos "" serp
+```
+```
 apt-get update -y && apt-get install -y git
 ```
 
-### 5.3 Let the VPS download your private code from GitHub
+The second one takes a minute. Wait until the `root@…#` line comes back.
 
-The VPS needs a read-only "key" to download your repository.
+### 5.5 Let the VPS download your private code from GitHub
+
+The VPS needs a read-only "key" so GitHub lets it download your private project.
 
 1. Switch to the app user:
 
    ```
    su - serp
    ```
-   The prompt changes to `serp@...$`.
+   The line now starts with `serp@…$`.
 
-2. Create the key (this makes two files; press nothing if it asks nothing):
+2. Create the key (it asks nothing):
 
    ```
    ssh-keygen -t ed25519 -C "serp-vps" -N "" -f ~/.ssh/id_ed25519
    ```
 
-3. Show the public half and copy it:
+3. Show the public half:
 
    ```
    cat ~/.ssh/id_ed25519.pub
    ```
-   It prints one long line starting with `ssh-ed25519`. Select the whole line and copy it (Cmd + C).
+   It prints one long line starting with `ssh-ed25519`. Select the **whole line** with your mouse and copy it (**Cmd + C**).
 
 4. In your browser open `https://github.com/vipulserpforge/SERP-Connect` → **Settings** → **Deploy keys** → **Add deploy key**.
    - **Title:** `serp-vps`
-   - **Key:** paste the line.
+   - **Key:** paste the line (**Cmd + V**).
    - Leave **Allow write access** **unticked** (read-only is safer).
    - Click **Add key**.
 
-5. Back in Terminal, trust GitHub and download the project:
+5. Back in Terminal, trust GitHub and download the project (two commands, one at a time):
 
    ```
    ssh-keyscan github.com >> ~/.ssh/known_hosts
+   ```
+   ```
    git clone git@github.com:vipulserpforge/SERP-Connect.git
    ```
-   **You should see** "Cloning into 'SERP-Connect'..." and then it finishes.
+   **You should see** `Cloning into 'SERP-Connect'...` and then it finishes without an error.
 
 6. Go back to root:
 
    ```
    exit
    ```
-   The prompt returns to `root@...#`.
+   The line starts with `root@…#` again.
 
-### 5.4 Run the one-time server setup
+### 5.6 Run the one-time server setup
 
-Paste this single line:
+As root, paste:
 
 ```
 bash /home/serp/SERP-Connect/deploy/vps/setup-server.sh
 ```
 
-It takes a few minutes. It installs Node 24, pnpm, PM2, Nginx and a firewall, and prepares the Nginx site for `mcp.visibll.in`.
+It takes a few minutes and prints a lot of text. It installs Node 24, pnpm, PM2 (keeps the app running), Nginx (the doorman) and a firewall, and prepares Nginx for `mcp.visibll.in`.
 
 **You should see** at the end: `Server is ready. Node v24…, pnpm 12.14.0, PM2 …`.
 
-What the firewall does: it lets in **only** SSH (port 22), web (80) and secure web (443). The MCP server's own port (8787) stays closed to the internet. Only Nginx can reach it.
+The firewall lets in **only** SSH (port 22), web (80) and secure web (443). The MCP server's own port (8787) stays closed to the internet. Only Nginx can reach it. Your SSH session stays connected.
 
-> If your VPS uses a different SSH port, run it as `SSH_PORT=2222 bash /home/serp/SERP-Connect/deploy/vps/setup-server.sh` (use your port), otherwise you can lock yourself out.
+> If the script says the Nginx file for the old domain or `serpforge` appears anywhere, you skipped step 5.0. Push the code, then run `cd /home/serp/SERP-Connect && su serp -c "git pull"` and run the setup line again.
 
-### 5.5 Put the MCP settings on the VPS
+### 5.7 Send your MCP settings to the VPS
 
-1. **On your Mac** (open a **new Terminal window**, do not use the VPS window), copy the file's contents to your clipboard without showing it:
+The MCP server needs its settings file (`mcp.env`). It stays on your Mac until you copy it, and it contains secrets, so we copy it directly (no email, no chat).
 
-   ```
-   pbcopy < ~/Documents/private-serp/mcp.env
-   ```
-   Nothing is printed. That is correct.
-
-2. **In the VPS window**, become the app user and open a new file:
+1. **Open a new Terminal window on your Mac** (in Terminal: **Cmd + N**). This window is your Mac, not the VPS. The line should end with your Mac's name and `%`, not `root@…#`.
+2. Paste (this uses your root password):
 
    ```
-   su - serp
-   nano ~/mcp.env
+   scp ~/Documents/private-serp/mcp.env root@172.93.223.194:/home/serp/mcp.env
    ```
-
-3. Paste with **Cmd + V**. You should see the 11 lines.
-4. Save: press **Ctrl + O**, then **Enter**. Exit: press **Ctrl + X**.
-5. Make the file private (only `serp` can read it):
+3. Enter the root password (the **new** one from step 5.2). **You should see** `mcp.env  100%`.
+4. Go back to the **VPS window** (the one that says `root@…#`). Paste:
 
    ```
-   chmod 600 ~/mcp.env
+   chown serp:serp /home/serp/mcp.env && chmod 600 /home/serp/mcp.env
    ```
-
-6. Quick check that it has 11 settings (this prints only a number):
+   This makes the file belong to `serp` and unreadable to anyone else.
+5. Check it has 11 settings (prints only a number):
 
    ```
-   grep -c '=' ~/mcp.env
+   grep -c '=' /home/serp/mcp.env
    ```
    **You should see** `11`.
 
-### 5.6 First start of the MCP server
+### 5.8 First start of the MCP server
 
-Still as `serp`, paste:
+1. Become the app user:
 
-```
-bash ~/SERP-Connect/deploy/vps/deploy.sh
-```
+   ```
+   su - serp
+   ```
+2. Start it:
 
-It prints 5 numbered steps (download, install, build, restart, check). The first run takes a few minutes.
+   ```
+   bash ~/SERP-Connect/deploy/vps/deploy.sh
+   ```
+   It prints 5 numbered steps (download, install, build, restart, check). The first run takes a few minutes.
 
-**You should see** at the end: `OK: MCP server is running ({"status":"ok"})`.
+   **You should see** at the end: `OK: MCP server is running ({"status":"ok"})`.
+3. Make PM2 remember the app after a reboot:
 
-Make PM2 remember the app for reboots (you already did the other half in 5.4):
+   ```
+   pm2 save
+   ```
+4. Go back to root:
 
-```
-pm2 save
-```
+   ```
+   exit
+   ```
 
-Useful commands for later (as `serp`):
+Useful commands for later (as `serp`, after `su - serp`):
 
 | Command | What it does |
 |---|---|
@@ -275,21 +367,17 @@ Useful commands for later (as `serp`):
 | `pm2 logs serp-mcp --lines 50` | Shows the latest messages |
 | `pm2 restart serp-mcp` | Restarts it |
 
-Then go back to root for the next step: type `exit`.
+### 5.9 Turn on HTTPS (the padlock)
 
-### 5.7 Turn on HTTPS (the padlock)
-
-**Only do this when DNS is ready** (Part A, step 4 showed your IP). As `root`, paste (replace `YOUR-EMAIL` with your real email address; it is used only for certificate expiry warnings):
+**Only do this when step 4.4 showed `172.93.223.194`.** As `root`, paste (replace `YOUR-EMAIL` with your real email, used only for certificate expiry warnings):
 
 ```
 certbot --nginx -d mcp.visibll.in -m YOUR-EMAIL --agree-tos --no-eff-email --redirect
 ```
 
-**You should see** "Successfully received certificate" and "Congratulations".
+**You should see** `Successfully received certificate` and `Congratulations`. Certificates renew by themselves. To confirm renewal works: `certbot renew --dry-run`.
 
-Certificates renew by themselves. To confirm the renewal works, run `certbot renew --dry-run`.
-
-### 5.8 Test the MCP server from the internet
+### 5.10 Test the MCP server from the internet
 
 On your Mac, open these addresses in your browser:
 
@@ -343,7 +431,7 @@ If the build complains about Node: open the project → **Settings** → **Gener
    | **CNAME** | `connect` | the value Vercel shows (often `cname.vercel-dns.com`) |
 
    **Use exactly what Vercel shows** if it differs.
-4. Add that record in your DNS page (same place as Part A).
+4. In Namecheap → Domain List → **Manage** `visibll.in` → **Advanced DNS** → **Add New Record**. Choose **CNAME Record**, **Host** `connect` (just `connect`), **Value** exactly what Vercel showed, **TTL** Automatic, then click the green tick. If Vercel shows an **A record** instead, choose **A Record**, Host `connect`, and the IP it shows.
 5. Go back to Vercel. In a few minutes the domain shows a green tick and Vercel adds the HTTPS padlock by itself.
 
 ### 6.5 Test the website
@@ -402,7 +490,7 @@ Do this **after** 6.5 works and 7.1 is saved.
 Why: Supabase's built-in email sender only delivers to people in your own Supabase team and is limited to a few emails per hour. Real customers will not get their confirmation email without your own sender.
 
 1. Create a free account at an email service, for example <https://resend.com> or <https://brevo.com>.
-2. In that service add your domain **`visibll.in`** and follow its steps. It shows you a few DNS records (SPF, DKIM, sometimes DMARC). **Add each one in your DNS page** and wait until the service says **Verified**.
+2. In that service add your domain **`visibll.in`** and follow its steps. It shows you a few DNS records (SPF, DKIM, sometimes DMARC). **Add each one in Namecheap → Advanced DNS → Add New Record**, then wait until the service says **Verified**. Namecheap quirk: in the **Host** box type only the part before `.visibll.in` (for example `resend._domainkey`, not `resend._domainkey.visibll.in`).
 3. In that service create SMTP credentials. You get: **host**, **port** (use `465` or `587`), **username**, **password**.
 4. Supabase → **Authentication** → **Emails** (or **Settings**) → **SMTP Settings** → turn on **Enable custom SMTP** and enter:
    - **Sender email:** `no-reply@visibll.in`
@@ -478,15 +566,15 @@ If it does not help, send Claude the error text. **Never include passwords or ke
 |---|---|---|
 | `ssh` says "Connection timed out" | Firewall or wrong IP | Check the IP; check your provider's firewall allows port 22 |
 | Setup script: "Run this as root" | You ran it as `serp` | `exit` to root, run it again |
-| `deploy.sh`: `Permission denied (publickey)` | The deploy key is missing | Redo 5.3 steps 3–4 |
+| `deploy.sh`: `Permission denied (publickey)` | The deploy key is missing | Redo 5.5 steps 3–4 |
 | `deploy.sh`: "did not answer" | The app started but crashed | `pm2 logs serp-mcp --lines 50` |
 | Logs say "Invalid environment configuration: NAME" | A setting in `~/mcp.env` is missing or wrong | `nano ~/mcp.env`, fix, save, then `pm2 restart serp-mcp --update-env` |
 | Logs say "Refusing to start in production with …mock…" | A test setting is on | `~/mcp.env` must have `MCP_AUTH_MODE=oauth`, `DATA_MODE=live`, `DB_MODE=postgres` |
 | Logs mention the database | Wrong `SUPABASE_DB_URL` | Copy it again from Supabase → Project Settings → Database (the **pooler** address) |
 | Logs say `ENETUNREACH` | The VPS cannot use IPv6 and the direct database address was used | Use the **pooler** address (section 2) |
-| `certbot` fails with "DNS problem" | The address does not point to the VPS yet | Part A, step 4; wait, retry |
+| `certbot` fails with "DNS problem" | The address does not point to the VPS yet | section 4.4; wait, retry |
 | Browser: "502 Bad Gateway" | Nginx cannot reach the app | `pm2 status` (must be `online`); if not: `pm2 restart serp-mcp` |
-| Browser: "This site can't be reached" | DNS or firewall | Check DNS (Part A), and that the firewall allows 80 and 443 (`ufw status`) |
+| Browser: "This site can't be reached" | DNS or firewall | Check DNS (section 4), and that the firewall allows 80 and 443 (`ufw status`) |
 | Claude: connector fails to connect | Supabase steps not done, or addresses mismatch | 7.2 and 7.3; run `pnpm mcp:check https://mcp.visibll.in/mcp` |
 | Claude says it cannot sign in | OAuth Server is off | 7.3 |
 | Connected on the website but Claude's reports fail | Different `SECRET_KEYS` on Vercel and the VPS | Make the values identical (section 2) |
