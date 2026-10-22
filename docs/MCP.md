@@ -2,8 +2,8 @@
 
 The **MCP server** is the connection point that lets Claude read a customer's Search Console, GA4 and Bing data, **only after that customer signs in and approves**. It is read-only: Claude can look at reports, never change anything.
 
-- Its address: `https://mcp.serpforge.io`
-- The link customers paste into Claude: `https://mcp.serpforge.io/mcp`
+- Its address: `https://mcp.visibll.in`
+- The link customers paste into Claude: `https://mcp.visibll.in/mcp`
 
 This page has two parts: the **checklist** (what you do, in order) and the **technical reference** (for developers, you can skip it).
 
@@ -16,19 +16,20 @@ This page has two parts: the **checklist** (what you do, in order) and the **tec
 - [x] **MCP server code is finished and tested.** Automated tests run a full fake sign-in with Claude's official connection code, plus 80 safety tests (for example: one customer can never see another customer's data).
 - [x] **Code is on GitHub** (`main`), ready for Vercel and your VPS.
 - [x] **Settings file for the MCP server is ready:** `~/Documents/private-serp/mcp.env` (11 settings, with your real addresses).
-- [x] **Audience hook is installed in Supabase.** The small function `custom_access_token_hook` is in your database and tested. It marks tokens given to Claude as "valid only for `https://mcp.serpforge.io/mcp`". Normal website logins are not affected.
+- [x] **Audience hook is installed in Supabase.** The small function `custom_access_token_hook` is in your database and tested. It marks tokens given to Claude as "valid only for `https://mcp.visibll.in/mcp`" (already updated for the `visibll.in` domain). Normal website logins are not affected.
 - [x] **Privacy and contact details are set** (`vipul@serpforge.io`).
 
 ### Still to do (in this order)
 
-- [ ] **1. Put the website online** at `connect.serpforge.io`. Follow section 6 (Vercel) of [`mcp-web.md`](mcp-web.md).
-- [ ] **2. Put the MCP server online** at `mcp.serpforge.io`. Follow section 5 (VPS) of [`mcp-web.md`](mcp-web.md).
+- [ ] **1. Put the website online** at `connect.visibll.in`. Follow section 6 (Vercel) of [`mcp-web.md`](mcp-web.md).
+- [ ] **2. Put the MCP server online** at `mcp.visibll.in`. Follow section 5 (VPS) of [`mcp-web.md`](mcp-web.md).
 - [ ] **3. Tell Supabase your website address.** Section 7.1 of [`mcp-web.md`](mcp-web.md).
 - [ ] **4. Switch on the audience hook** (see "How to" below).
 - [ ] **5. Switch on the Supabase OAuth Server** (see "How to" below).
-- [ ] **6. Add the live address in Google.** Section 7.4 of [`mcp-web.md`](mcp-web.md).
-- [ ] **7. Run the connection check** (see "How to" below).
-- [ ] **8. Add the connector in Claude** and test it (see "How to" below).
+- [ ] **6. Add the live address in Google.** Section 7.6 of [`mcp-web.md`](mcp-web.md).
+- [ ] **7. Set up your own email sender (SMTP) in Supabase** so sign-up emails reach customers. Section 7.5 of [`mcp-web.md`](mcp-web.md).
+- [ ] **8. Run the connection check** (see "How to" below).
+- [ ] **9. Add the connector in Claude** and test it (see "How to" below).
 
 ---
 
@@ -66,9 +67,9 @@ Claude's return address, `https://claude.ai/api/mcp/auth_callback`, must be allo
 
 ## How to: check it works
 
-### Run the connection check (checklist item 7)
+### Run the connection check (checklist item 8)
 
-Ask Claude (in this project): **"Run `pnpm mcp:check https://mcp.serpforge.io/mcp`"**.
+Ask Claude (in this project): **"Run `pnpm mcp:check https://mcp.visibll.in/mcp`"**.
 
 It reads out a list of checks. Lines marked **FAIL** tell you what is still missing:
 
@@ -79,10 +80,10 @@ It reads out a list of checks. Lines marked **FAIL** tell you what is still miss
 | Cannot reach server | The MCP app is not running | Check the app on the VPS: `pm2 status` (see section 9 of `mcp-web.md`) |
 | No registration method | Dynamic Client Registration is off | Allow it in the OAuth Server settings |
 
-### Add it in Claude (checklist item 8)
+### Add it in Claude (checklist item 9)
 
 1. In Claude open **Settings** → **Connectors** → **Add custom connector**.
-2. Paste `https://mcp.serpforge.io/mcp`.
+2. Paste `https://mcp.visibll.in/mcp`.
 3. A sign-in page from your website opens. Sign in and click **Approve**.
 4. Test it: ask Claude **"Run get_connection_status"**. It should list the providers you connected on the website (Search Console, GA4, ...).
 
@@ -138,7 +139,7 @@ Claude-specific requirements honored: 401 on missing token; the PRM `resource` e
 
 ### Audience binding
 
-Supabase tokens carry `aud: "authenticated"` and have no documented RFC 8707 support. The hook `supabase/migrations/20261021100000_mcp_audience_hook.sql` (applied to project `dphftsifxfhxbhtgabso`) sets `aud` to `https://mcp.serpforge.io/mcp` only for tokens that carry a `client_id`, so website sessions are untouched. It is verified with sample tokens and restricted to `supabase_auth_admin`. It still has to be switched on in the dashboard. The server's `MCP_RESOURCE_AUDIENCE` must equal that value. Without it the server refuses to start with the generic audience unless `MCP_ACCEPT_DEFAULT_SUPABASE_AUDIENCE=true` (accepts any Supabase token for this project that has a `client_id`; weaker).
+Supabase tokens carry `aud: "authenticated"` and have no documented RFC 8707 support. The hook `supabase/migrations/20261021100000_mcp_audience_hook.sql` (applied to project `dphftsifxfhxbhtgabso`) sets `aud` to `https://mcp.visibll.in/mcp` only for tokens that carry a `client_id`, so website sessions are untouched. It is verified with sample tokens and restricted to `supabase_auth_admin`. It still has to be switched on in the dashboard. The server's `MCP_RESOURCE_AUDIENCE` must equal that value. The domain change to `visibll.in` is in migration `20261022100000_mcp_audience_hook_visibll.sql` (applied). Without it the server refuses to start with the generic audience unless `MCP_ACCEPT_DEFAULT_SUPABASE_AUDIENCE=true` (accepts any Supabase token for this project that has a `client_id`; weaker).
 
 ## What was and was not tested
 
@@ -152,9 +153,9 @@ Tested (all automated, mock identity provider with real RSA/EC keys and real JWK
 
 ## Production settings reference
 
-MCP app (hPanel → Environment variables, imported from `mcp.env`): `MCP_AUTH_MODE=oauth`, `MCP_PUBLIC_URL=https://mcp.serpforge.io`, `MCP_OAUTH_ISSUER_URL=https://dphftsifxfhxbhtgabso.supabase.co/auth/v1`, `MCP_RESOURCE_AUDIENCE=https://mcp.serpforge.io/mcp`, `DB_MODE=postgres`, `DATA_MODE=live`, `SUPABASE_DB_URL`, `SECRET_KEYS`, `CREDENTIAL_FINGERPRINT_KEY`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`. Optional: `MCP_JWKS_URL`, `MCP_ALLOWED_ORIGINS`, `MCP_REQUIRED_SCOPES`. Production refuses mock modes.
+MCP app (the file `/home/serp/mcp.env` on the VPS): `MCP_AUTH_MODE=oauth`, `MCP_PUBLIC_URL=https://mcp.visibll.in`, `MCP_OAUTH_ISSUER_URL=https://dphftsifxfhxbhtgabso.supabase.co/auth/v1`, `MCP_RESOURCE_AUDIENCE=https://mcp.visibll.in/mcp`, `DB_MODE=postgres`, `DATA_MODE=live`, `SUPABASE_DB_URL`, `SECRET_KEYS`, `CREDENTIAL_FINGERPRINT_KEY`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`. Optional: `MCP_JWKS_URL`, `MCP_ALLOWED_ORIGINS`, `MCP_REQUIRED_SCOPES`. Production refuses mock modes.
 
-Website app: `NEXT_PUBLIC_MCP_URL=https://mcp.serpforge.io/mcp` so the dashboard shows the connector address.
+Website app: `NEXT_PUBLIC_MCP_URL=https://mcp.visibll.in/mcp` so the dashboard shows the connector address.
 
 ## Local use with mocks
 

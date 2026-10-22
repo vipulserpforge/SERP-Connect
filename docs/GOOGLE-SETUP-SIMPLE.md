@@ -38,7 +38,7 @@ The same two Google values (Client ID and Client secret) are needed in two diffe
 | Where | When | How |
 |---|---|---|
 | **Your computer**: the file `.env.local` in the `SERP Connect` folder | While you test on your own computer (`http://localhost:3000`) | Part 7 of this guide |
-| **Your hosting**: Vercel → the project → **Settings** → **Environment Variables** (website), and the file `/home/serp/mcp.env` on the VPS (MCP server) | For the live website at `https://connect.serpforge.io` and the MCP server | Part 9b below and [`mcp-web.md`](mcp-web.md) |
+| **Your hosting**: Vercel → the project → **Settings** → **Environment Variables** (website), and the file `/home/serp/mcp.env` on the VPS (MCP server) | For the live website at `https://connect.visibll.in` and the MCP server | Part 9b below and [`mcp-web.md`](mcp-web.md) |
 
 Your live website runs on **Vercel** and your MCP server on your **VPS**. They are **two separate apps**, and **both** need the Google Client ID and secret. The file `.env.local` on your computer is never uploaded to Vercel, the VPS or GitHub.
 
@@ -46,7 +46,7 @@ Your live website runs on **Vercel** and your MCP server on your **VPS**. They a
 
 - A Google account to own the project (your own Gmail is fine, but a company-owned address is better long term, because changing the owner later is awkward).
 - This project's folder on your computer (`SERP Connect`), and a Terminal window opened in it.
-- Your domain name (`serpforge.io`) and the two addresses you plan to use: `connect.serpforge.io` and `mcp.serpforge.io`.
+- Your domain name (`visibll.in`) and the two addresses you plan to use: `connect.visibll.in` and `mcp.visibll.in`.
 - About 45 minutes the first time.
 
 ### Safety rules (please follow these)
@@ -106,10 +106,10 @@ Fill in everything now, including the website addresses, even though the website
    - **User support email:** an inbox you really read (Google emails problems here).
    - **App logo:** optional now. Adding one means the logo goes through Google's review as well, so it is simplest to skip it until the rest is approved.
 4. **App domain**
-   - **Application home page:** `https://connect.serpforge.io/`
-   - **Application privacy policy link:** `https://connect.serpforge.io/privacy` (the app already has this page; see Part 9a)
+   - **Application home page:** `https://connect.visibll.in/`
+   - **Application privacy policy link:** `https://connect.visibll.in/privacy` (the app already has this page; see Part 9a)
    - **Application terms of service link:** optional.
-   - **Authorized domains:** click **Add domain** and type your main domain, `serpforge.io` (without `https://` and without `connect.`).
+   - **Authorized domains:** click **Add domain** and type your main domain, `visibll.in` (without `https://` and without `connect.`).
 5. **Developer contact information:** your email.
 6. Click **Save** (or **Next** / **Create** if it is the first-time wizard).
 
@@ -166,9 +166,9 @@ Your app asks for read-only access to two things, plus the person's email addres
    Click **Add URI** again and add the live address, using your real domain:
 
    ```
-   https://connect.serpforge.io/api/oauth/google/callback
+   https://connect.visibll.in/api/oauth/google/callback
    ```
-   The `connect.serpforge.io` part must be exactly the address you will use for the dashboard, it must start with `https`, and there is no `/` at the end. (You can add this second line later if the website is not online yet.)
+   The `connect.visibll.in` part must be exactly the address you will use for the dashboard, it must start with `https`, and there is no `/` at the end. (You can add this second line later if the website is not online yet.)
 
    > **Put these in the right box.** The page has two similar boxes: "Authorized JavaScript origins" and "Authorized redirect URIs". The addresses above go **only** in **Authorized redirect URIs**. Leave the JavaScript origins box empty.
 7. Leave "Use this client for an AI-powered agent" **unticked**.
@@ -301,20 +301,20 @@ Do 9a and 9b as soon as you have something working on your computer. Do 9c once 
 
 ### 9a. Things to prepare for Google's review
 
-- [ ] **A live website on HTTPS** on a domain you own, hosted on Vercel (`https://connect.serpforge.io`). Follow [`mcp-web.md`](mcp-web.md) first. Google visits your home page and privacy page.
+- [ ] **A live website on HTTPS** on a domain you own, hosted on Vercel (`https://connect.visibll.in`). Follow [`mcp-web.md`](mcp-web.md) first. Google visits your home page and privacy page.
 - [ ] **Verify the domain** in Google Search Console (<https://search.google.com/search-console>) using the same Google account that owns the Cloud project, as an **Owner** of the domain property. Google requires this for the domain you listed in Part 3. (Add the domain as a "Domain" property and follow the DNS instructions; Hostinger's DNS editor is in hPanel → Domains → DNS.)
 - [ ] **A public home page** that explains what the app does and links to the privacy policy. The app's home page already does this once deployed.
-- [ ] **A privacy policy** at `https://connect.serpforge.io/privacy`. The app includes a **draft** page written from how the app really handles data. Read it, and have whoever advises you on legal matters review it. Add your contact email by setting `SUPPORT_EMAIL` in the website's Hostinger environment variables. It must clearly say how Google data is used, stored and shared.
+- [ ] **A privacy policy** at `https://connect.visibll.in/privacy`. The app includes a **draft** page written from how the app really handles data. Read it, and have whoever advises you on legal matters review it. Add your contact email by setting `SUPPORT_EMAIL` in the website's Hostinger environment variables. It must clearly say how Google data is used, stored and shared.
 - [ ] **A short screen recording** (upload to YouTube and set it to *Unlisted*) showing the whole connect flow in English: the browser address bar with the client ID visible, the Google permission screen with your app name, and what the app does with each permission (listing sites, showing reports).
 - [ ] **A sentence per permission** explaining why you need it, and why a narrower one will not do (for example: "analytics.readonly lets the customer's own GA4 reports be fetched on their behalf; there is no narrower read-only report scope").
 - [ ] **A working demo account** on the live site Google's reviewer could use if they ask (Google may request test access). Keep its email and password somewhere safe; share only through Google's review form if asked.
 
 ### 9b. Put the Google values into Vercel and the VPS
 
-1. In Vercel, open the project → **Settings** → **Environment Variables** → add (or edit) `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`, and check `DATA_MODE=live` and `NEXT_PUBLIC_APP_URL=https://connect.serpforge.io` → **Save**, then **Deployments** → latest → **⋯** → **Redeploy** (settings only apply to a new deployment).
+1. In Vercel, open the project → **Settings** → **Environment Variables** → add (or edit) `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`, and check `DATA_MODE=live` and `NEXT_PUBLIC_APP_URL=https://connect.visibll.in` → **Save**, then **Deployments** → latest → **⋯** → **Redeploy** (settings only apply to a new deployment).
 2. On the VPS, as the `serp` user: `nano ~/mcp.env`, set the **same** `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`, save (**Ctrl + O**, **Enter**, **Ctrl + X**), then run `pm2 restart serp-mcp --update-env`.
 3. Both apps must have both values, and the same `SECRET_KEYS`. Full list: [`mcp-web.md`](mcp-web.md) section 2.
-4. In Google (Clients → your client), confirm the redirect URI `https://connect.serpforge.io/api/oauth/google/callback` is listed (Part 6).
+4. In Google (Clients → your client), confirm the redirect URI `https://connect.visibll.in/api/oauth/google/callback` is listed (Part 6).
 5. Connect one test account on the live site, as in Part 8d.
 
 ### 9c. Publish and submit for verification
@@ -331,7 +331,7 @@ Google also says that a passed brand check is only valid for 7 days before you p
 
 ### 9d. Good to know
 
-- Google generally recommends a **separate project for the public app**, without any `localhost` address in it. A clean way: when you reach 9c, create a second project `serp-connector-prod`, repeat Parts 1 to 6 there (External; only the `https://connect.serpforge.io/...` redirect), publish and verify **that** project, and put its Client ID/secret in both live apps (Vercel and the VPS). Keep the first project for testing on your computer. This also means test users and weekly expiries never touch your live customers.
+- Google generally recommends a **separate project for the public app**, without any `localhost` address in it. A clean way: when you reach 9c, create a second project `serp-connector-prod`, repeat Parts 1 to 6 there (External; only the `https://connect.visibll.in/...` redirect), publish and verify **that** project, and put its Client ID/secret in both live apps (Vercel and the VPS). Keep the first project for testing on your computer. This also means test users and weekly expiries never touch your live customers.
 - Anyone who connected through the old project must click Connect again after you switch the live values, because their saved permission belongs to the old client.
 - Changing the app name, logo or website addresses after approval can send the app back for another review. Decide them before submitting.
 
@@ -341,7 +341,7 @@ Google also says that a passed brand check is only valid for 7 days before you p
 
 | What you see | In plain words | What to do |
 |---|---|---|
-| Google page or `pnpm google:check --probe`: **redirect_uri_mismatch** ("doesn't comply with Google's OAuth 2.0 policy") | The address the app used is not saved under **Authorized redirect URIs** on that client (not saved, wrong box, typo, or not applied yet) | In Clients → your client → make the Authorized redirect URI exactly `http://localhost:3000/api/oauth/google/callback` (on your computer) or `https://connect.serpforge.io/api/oauth/google/callback` (live). No space, no `/` at the end. Save and retry (it can take a few minutes to apply) |
+| Google page or `pnpm google:check --probe`: **redirect_uri_mismatch** ("doesn't comply with Google's OAuth 2.0 policy") | The address the app used is not saved under **Authorized redirect URIs** on that client (not saved, wrong box, typo, or not applied yet) | In Clients → your client → make the Authorized redirect URI exactly `http://localhost:3000/api/oauth/google/callback` (on your computer) or `https://connect.visibll.in/api/oauth/google/callback` (live). No space, no `/` at the end. Save and retry (it can take a few minutes to apply) |
 | Google page: **invalid_client** or "OAuth client was not found" | Client ID is wrong, or you copied it from another project | Re-copy the Client ID from Clients, check the project name in the top bar, update `.env.local` (and Hostinger), restart the app |
 | Google page: **access_denied** ("has not completed verification" / "only developer-approved testers") | In Testing mode this account is not on the Test users list | Audience → Test users → Add users, then try again |
 | "Google hasn't verified this app" | Normal in Testing, and until verification is approved | Click Advanced → Go to the app (unsafe) for your own testing. Customers should not be asked to do this: finish Part 9c first |

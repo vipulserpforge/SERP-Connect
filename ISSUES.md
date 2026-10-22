@@ -22,8 +22,8 @@ This list holds everything that I could **not** safely fix or verify myself. I c
 - **Why it matters:** Small differences on the real services (for example a Vercel setting) can still cause a failure on the first try.
 - **What to do:** Follow [`docs/mcp-web.md`](docs/mcp-web.md) from the top. If something fails, copy the error text (never passwords or keys) and give it to Claude.
 - **How to verify:**
-  - `https://connect.serpforge.io/api/health` shows `{"status":"ok"}`.
-  - `https://mcp.serpforge.io/healthz` shows `{"status":"ok"}`.
+  - `https://connect.visibll.in/api/health` shows `{"status":"ok"}`.
+  - `https://mcp.visibll.in/healthz` shows `{"status":"ok"}`.
 
 ### 2. The Supabase "audience hook" is installed but not switched on
 - **Problem:** The function exists in your database, but Supabase does not use it until you switch it on.
@@ -34,18 +34,18 @@ This list holds everything that I could **not** safely fix or verify myself. I c
   3. Find **Customize Access Token (JWT) Claims** and click **Add hook** (or **Enable**).
   4. Choose **Postgres**, schema `public`, function `custom_access_token_hook`.
   5. Click **Create** / **Save**.
-- **How to verify:** Ask Claude to run `pnpm mcp:check https://mcp.serpforge.io/mcp`. The "audience" line must not say FAIL.
+- **How to verify:** Ask Claude to run `pnpm mcp:check https://mcp.visibll.in/mcp`. The "audience" line must not say FAIL.
 
 ### 3. The Supabase OAuth Server is switched off
 - **Problem:** When last checked it was off.
 - **Why it matters:** This is the "sign in and approve" system Claude uses. Without it the connector cannot sign anyone in.
-- **What to do:** (do this **after** the website is live on `connect.serpforge.io`)
-  1. Supabase dashboard → **Authentication** → **URL Configuration**: set **Site URL** to `https://connect.serpforge.io` and add `https://connect.serpforge.io/auth/callback` under **Redirect URLs**. Click **Save**.
+- **What to do:** (do this **after** the website is live on `connect.visibll.in`)
+  1. Supabase dashboard → **Authentication** → **URL Configuration**: set **Site URL** to `https://connect.visibll.in` and add `https://connect.visibll.in/auth/callback` under **Redirect URLs**. Click **Save**.
   2. **Authentication** → **OAuth Server**: turn it **on**.
   3. **Authorization Path:** `/oauth/consent`
   4. Turn on **Dynamic Client Registration** (Claude needs it to introduce itself).
   5. Click **Save**.
-- **How to verify:** `pnpm mcp:check https://mcp.serpforge.io/mcp` shows no FAIL lines about the OAuth server or registration.
+- **How to verify:** `pnpm mcp:check https://mcp.visibll.in/mcp` shows no FAIL lines about the OAuth server or registration.
 
 ### 4. Google does not know your live website address yet
 - **Problem:** Google only allows sign-in returns to addresses you registered.
@@ -53,7 +53,7 @@ This list holds everything that I could **not** safely fix or verify myself. I c
 - **What to do:**
   1. Open <https://console.cloud.google.com> and choose your project.
   2. **Google Auth Platform** → **Clients** → click your client.
-  3. Under **Authorized redirect URIs** click **Add URI** and paste exactly: `https://connect.serpforge.io/api/oauth/google/callback`
+  3. Under **Authorized redirect URIs** click **Add URI** and paste exactly: `https://connect.visibll.in/api/oauth/google/callback`
   4. Click **Save** and wait a few minutes.
 - **How to verify:** On the live website, sign in and click **Connect Search Console**. Google's page opens with no error, and you return to the dashboard.
 
@@ -61,15 +61,15 @@ This list holds everything that I could **not** safely fix or verify myself. I c
 - **Problem:** Supabase's built-in email sender only delivers to people in your Supabase organization, and has very low limits.
 - **Why it matters:** A new customer who signs up never receives the confirmation email, so they cannot join. The app shows "We cannot send a confirmation email to that address yet."
 - **What to do:**
-  1. Create an account with an email-sending service (for example Resend, Brevo, Amazon SES or Postmark) and verify your domain `serpforge.io` there. They give you SMTP details (host, port, user, password).
-  2. Supabase dashboard → **Authentication** → **Emails** → **SMTP Settings** → turn on **Enable custom SMTP** and enter those details. Use a sender address such as `no-reply@serpforge.io`.
+  1. Create an account with an email-sending service (for example Resend, Brevo, Amazon SES or Postmark) and verify your domain `visibll.in` there. They give you SMTP details (host, port, user, password).
+  2. Supabase dashboard → **Authentication** → **Emails** → **SMTP Settings** → turn on **Enable custom SMTP** and enter those details. Use a sender address such as `no-reply@visibll.in`.
   3. Click **Save**.
-- **How to verify:** Sign up on the live site with an email address that is **not** in your Supabase team. The confirmation email arrives, and its link opens `connect.serpforge.io`.
+- **How to verify:** Sign up on the live site with an email address that is **not** in your Supabase team. The confirmation email arrives, and its link opens `connect.visibll.in`.
 
 ### 6. A real Claude connection has never been tested
 - **Problem:** All my tests used a pretend sign-in system with Claude's official connection code. A real Claude has never connected.
 - **Why it matters:** The first real attempt may reveal a small mismatch (for example in Claude's registration step).
-- **What to do:** After items 1 to 5 are done: in Claude open **Settings** → **Connectors** → **Add custom connector** → paste `https://mcp.serpforge.io/mcp` → sign in → **Allow**.
+- **What to do:** After items 1 to 5 are done: in Claude open **Settings** → **Connectors** → **Add custom connector** → paste `https://mcp.visibll.in/mcp` → sign in → **Allow**.
 - **How to verify:** Ask Claude "Run get_connection_status". It lists your connected services. If it fails, send Claude the exact message you see.
 
 ### 7. Google app is in "Testing" mode
@@ -136,7 +136,7 @@ This list holds everything that I could **not** safely fix or verify myself. I c
 - **Problem:** `deploy/vps/setup-server.sh`, `deploy.sh` and the Nginx file were not run on Linux. I tested the same install, build and PM2 start on macOS, and checked the scripts for syntax errors. Nginx is not installed on my machine, so I could not test the Nginx file.
 - **Why it matters:** A typo or a Linux difference may show up on the first run.
 - **What to do:** Follow section 5 of [`docs/mcp-web.md`](docs/mcp-web.md). If a command fails, send Claude the exact error.
-- **How to verify:** `nginx -t` on the VPS says "syntax is ok", and `https://mcp.serpforge.io/healthz` shows `ok`.
+- **How to verify:** `nginx -t` on the VPS says "syntax is ok", and `https://mcp.visibll.in/healthz` shows `ok`.
 
 ### 17. Harden and back up the VPS
 - **Problem:** A new server is not locked down by default.
@@ -172,7 +172,7 @@ This list holds everything that I could **not** safely fix or verify myself. I c
 - **Problem:** The project ships Supabase's root certificate (valid until 26 April 2031) so the database connection can be verified.
 - **Why it matters:** If Supabase changes certificates earlier, database connections fail with a "certificate" error.
 - **What to do if it happens:** Supabase → **Project Settings** → **Database** → **SSL Configuration** → **Download certificate**. Put its text in a setting named `SUPABASE_DB_CA` (on Vercel and in `/home/serp/mcp.env`) and redeploy / `pm2 restart serp-mcp --update-env`. There is deliberately no setting that turns the certificate check off.
-- **How to verify:** `https://connect.serpforge.io/dashboard` loads after signing in.
+- **How to verify:** `https://connect.visibll.in/dashboard` loads after signing in.
 
 ---
 

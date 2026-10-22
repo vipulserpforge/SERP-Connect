@@ -11,7 +11,7 @@ if [ "$(id -u)" -ne 0 ]; then
 fi
 
 APP_USER="${APP_USER:-serp}"
-DOMAIN="${DOMAIN:-mcp.serpforge.io}"
+DOMAIN="${DOMAIN:-mcp.visibll.in}"
 SSH_PORT="${SSH_PORT:-22}"
 NGINX_TEMPLATE="$(dirname "${BASH_SOURCE[0]}")/nginx-mcp.conf.example"
 
@@ -37,7 +37,7 @@ if [ ! -f "${NGINX_TEMPLATE}" ]; then
   echo "Cannot find ${NGINX_TEMPLATE}. Run this script from the downloaded project (deploy/vps)." >&2
   exit 1
 fi
-sed "s/mcp\.serpforge\.io/${DOMAIN}/g" "${NGINX_TEMPLATE}" > "/etc/nginx/sites-available/${DOMAIN}"
+sed "s/mcp\.visibll\.in/${DOMAIN}/g" "${NGINX_TEMPLATE}" > "/etc/nginx/sites-available/${DOMAIN}"
 ln -sf "/etc/nginx/sites-available/${DOMAIN}" "/etc/nginx/sites-enabled/${DOMAIN}"
 rm -f /etc/nginx/sites-enabled/default
 nginx -t

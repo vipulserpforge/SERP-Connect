@@ -4,8 +4,8 @@ This guide puts the two parts of SERP Connect in two different places and connec
 
 | Part | Where it runs | Its address |
 |---|---|---|
-| **Website** (customers sign up, click "Connect Google") | **Vercel** | `https://connect.serpforge.io` |
-| **MCP server** (the connection point Claude talks to) | **Your private VPS** | `https://mcp.serpforge.io` |
+| **Website** (customers sign up, click "Connect Google") | **Vercel** | `https://connect.visibll.in` |
+| **MCP server** (the connection point Claude talks to) | **Your private VPS** | `https://mcp.visibll.in` |
 
 You do not write code. You click, copy and paste. Every step says **what to do**, **what you should see**, and **why**.
 
@@ -14,13 +14,13 @@ You do not write code. You click, copy and paste. Every step says **what to do**
 ## 0. The big picture (read this once)
 
 ```
- Customer's browser ──► connect.serpforge.io ──► Vercel (website)
+ Customer's browser ──► connect.visibll.in ──► Vercel (website)
                                                     │
                                                     ▼
                                              Supabase (database + sign-in)
                                                     ▲
                                                     │
- Claude ──► mcp.serpforge.io ──► Nginx ──► MCP server (PM2) on your VPS
+ Claude ──► mcp.visibll.in ──► Nginx ──► MCP server (PM2) on your VPS
 ```
 
 - The two parts **do not talk to each other directly**. They share the same Supabase database, the same secret key (`SECRET_KEYS`) and the same Google settings. That is why the settings files must match (Part 2).
@@ -46,14 +46,33 @@ Tested on my computer, in a clean copy of the project:
 |---|---|
 | **GitHub** | Your code is already on `vipulserpforge/SERP-Connect`, branch `main`. |
 | **Vercel account** | Free signup at <https://vercel.com> (use "Continue with GitHub"). See the note on plans below. |
-| **A VPS** | Ubuntu **24.04** (or 22.04), **1 GB RAM minimum, 2 GB comfortable**, a public IP address, and `root` login. |
-| **Access to DNS for `serpforge.io`** | Wherever your domain's DNS is managed (for example Hostinger → Domains → DNS). You will add two records. |
+| **A VPS** | Operating system **Ubuntu 24.04** (or 22.04; **not** CentOS, AlmaLinux or Windows), **1 GB RAM minimum, 2 GB comfortable**, a public IP address, and `root` login. When ordering, set the **Hostname** to `mcp.visibll.in`, choose a long unique root password, leave NS1/NS2 as they are, and add no extra disk or IP. |
+| **Access to DNS for `visibll.in`** | Wherever your domain's DNS is managed (your domain registrar or host). You will add two records: `mcp` (to the VPS) and `connect` (to Vercel). |
+| **An email-sending service (SMTP)** | For sign-up and password emails (section 7.5). Free options: Resend, Brevo. |
 | **Your two settings files** | `~/Documents/private-serp/web.env` and `~/Documents/private-serp/mcp.env` (already created). |
 | **A Mac Terminal** | Press **Cmd + Space**, type `Terminal`, press Enter. You paste commands into it. |
 
 > **Vercel plan note:** Vercel's free **Hobby** plan is for personal, **non-commercial** use. If SERP Connect is a business or charges customers, use Vercel's paid **Pro** plan. Check Vercel's current terms before you launch.
 
 > **Golden rule:** never paste passwords or keys into chat, email or GitHub. Only into your Mac, Vercel's settings page and the VPS.
+
+---
+
+## 1a. The order of work (follow this exactly)
+
+Doing the steps in this order avoids most problems:
+
+| # | Do this | Section |
+|---|---|---|
+| 1 | Buy the VPS (Ubuntu 24.04) and note its IP address | 1 |
+| 2 | Add the DNS record `mcp` → your VPS IP | 4 |
+| 3 | Set up the VPS, start the MCP server, turn on HTTPS | 5 |
+| 4 | Put the website on Vercel, add `connect.visibll.in` | 6 |
+| 5 | Supabase: website address, email (SMTP), audience hook, OAuth Server | 7.1 to 7.5 |
+| 6 | Google: add the new return address and website details | 7.6 |
+| 7 | Test everything and connect Claude | 8 |
+
+Your `web.env` and `mcp.env` files were already updated to the `visibll.in` addresses. The Supabase database hook was also already updated to `https://mcp.visibll.in/mcp`.
 
 ---
 
@@ -100,7 +119,7 @@ Real secrets are **never** stored in the project. They stay in `web.env` / `mcp.
 
 You will add two DNS records. Do the MCP one first, because it takes a while to spread across the internet.
 
-1. Log in to wherever DNS for `serpforge.io` is managed. In Hostinger this is hPanel → **Domains** → `serpforge.io` → **DNS / Nameservers** → **DNS records**.
+1. Log in to wherever DNS for `visibll.in` is managed. In Hostinger this is hPanel → **Domains** → `visibll.in` → **DNS / Nameservers** → **DNS records**.
 2. **Add this record** (replace `YOUR.VPS.IP` with your VPS's public IP address, from your VPS provider's dashboard):
 
    | Type | Name | Points to / Value | TTL |
@@ -108,7 +127,7 @@ You will add two DNS records. Do the MCP one first, because it takes a while to 
    | **A** | `mcp` | `YOUR.VPS.IP` | 300 (or the lowest allowed) |
 
 3. The website record comes later in Part D, when Vercel tells you the exact value.
-4. **Check it spread:** open <https://dnschecker.org>, type `mcp.serpforge.io`, choose type **A**, press Search. When most places show your IP address, it is ready. It can take from 5 minutes to a few hours.
+4. **Check it spread:** open <https://dnschecker.org>, type `mcp.visibll.in`, choose type **A**, press Search. When most places show your IP address, it is ready. It can take from 5 minutes to a few hours.
 
 > Delete any old record for `mcp` (for example one pointing to Hostinger). Two records for the same name cause random failures.
 
@@ -191,7 +210,7 @@ Paste this single line:
 bash /home/serp/SERP-Connect/deploy/vps/setup-server.sh
 ```
 
-It takes a few minutes. It installs Node 24, pnpm, PM2, Nginx and a firewall, and prepares the Nginx site for `mcp.serpforge.io`.
+It takes a few minutes. It installs Node 24, pnpm, PM2, Nginx and a firewall, and prepares the Nginx site for `mcp.visibll.in`.
 
 **You should see** at the end: `Server is ready. Node v24…, pnpm 12.14.0, PM2 …`.
 
@@ -260,10 +279,10 @@ Then go back to root for the next step: type `exit`.
 
 ### 5.7 Turn on HTTPS (the padlock)
 
-**Only do this when DNS is ready** (Part A, step 4 showed your IP). As `root`, paste (your email is used only for certificate warnings):
+**Only do this when DNS is ready** (Part A, step 4 showed your IP). As `root`, paste (replace `YOUR-EMAIL` with your real email address; it is used only for certificate expiry warnings):
 
 ```
-certbot --nginx -d mcp.serpforge.io -m vipul@serpforge.io --agree-tos --no-eff-email --redirect
+certbot --nginx -d mcp.visibll.in -m YOUR-EMAIL --agree-tos --no-eff-email --redirect
 ```
 
 **You should see** "Successfully received certificate" and "Congratulations".
@@ -276,9 +295,9 @@ On your Mac, open these addresses in your browser:
 
 | Address | You should see |
 |---|---|
-| `https://mcp.serpforge.io/healthz` | `{"status":"ok"}` with a padlock |
-| `https://mcp.serpforge.io/.well-known/oauth-protected-resource/mcp` | text starting with `{"resource":"https://mcp.serpforge.io/mcp"` |
-| `https://mcp.serpforge.io/mcp` | an "unauthorized" error. **This is correct.** Only a signed-in Claude may use it. |
+| `https://mcp.visibll.in/healthz` | `{"status":"ok"}` with a padlock |
+| `https://mcp.visibll.in/.well-known/oauth-protected-resource/mcp` | text starting with `{"resource":"https://mcp.visibll.in/mcp"` |
+| `https://mcp.visibll.in/mcp` | an "unauthorized" error. **This is correct.** Only a signed-in Claude may use it. |
 
 If one fails, see section 9.
 
@@ -316,7 +335,7 @@ If the build complains about Node: open the project → **Settings** → **Gener
 ### 6.4 Connect your address
 
 1. In the Vercel project open **Settings** → **Domains**.
-2. Type `connect.serpforge.io` and click **Add**.
+2. Type `connect.visibll.in` and click **Add**.
 3. Vercel shows a DNS record to create. Usually it is:
 
    | Type | Name | Value |
@@ -333,9 +352,9 @@ Open these addresses:
 
 | Address | You should see |
 |---|---|
-| `https://connect.serpforge.io/api/health` | `{"status":"ok"}` |
-| `https://connect.serpforge.io/` | the home page, with a padlock |
-| `https://connect.serpforge.io/privacy` | the privacy page showing `vipul@serpforge.io` |
+| `https://connect.visibll.in/api/health` | `{"status":"ok"}` |
+| `https://connect.visibll.in/` | the home page, with a padlock |
+| `https://connect.visibll.in/privacy` | the privacy page showing your support email (the `SUPPORT_EMAIL` setting) |
 
 ---
 
@@ -347,8 +366,8 @@ Now tell Supabase and Google your new addresses.
 
 1. Open <https://supabase.com/dashboard> → your SERP Connect project.
 2. Left menu → **Authentication** → **URL Configuration**.
-3. **Site URL:** `https://connect.serpforge.io`
-4. **Redirect URLs** → **Add URL**: `https://connect.serpforge.io/auth/callback`
+3. **Site URL:** `https://connect.visibll.in`
+4. **Redirect URLs** → **Add URL**: `https://connect.visibll.in/auth/callback`
 5. Click **Save**.
 
 Why: otherwise sign-up emails still link to `localhost`.
@@ -362,7 +381,7 @@ The hook function is already installed in your database. You only switch it on.
 3. Type **Postgres**, schema `public`, function `custom_access_token_hook`.
 4. **Create** / **Save**.
 
-Why: it makes the tokens given to Claude valid **only** for `https://mcp.serpforge.io/mcp`.
+Why: it makes the tokens given to Claude valid **only** for `https://mcp.visibll.in/mcp`.
 
 ### 7.3 Supabase: switch on the OAuth Server (the Claude sign-in)
 
@@ -373,18 +392,45 @@ Do this **after** 6.5 works and 7.1 is saved.
 3. Allow **Dynamic Client Registration** (Claude needs it to introduce itself).
 4. **Save**.
 
-### 7.4 Google: your return address
+### 7.4 Check Supabase has no old address left
 
-1. Open <https://console.cloud.google.com> → select your project.
-2. **Google Auth Platform** → **Clients** → click your client.
-3. Under **Authorized redirect URIs** → **Add URI**, paste exactly:
+1. **Authentication** → **URL Configuration**: Site URL must be `https://connect.visibll.in`, and no `localhost` or `serpforge.io` address should remain in **Redirect URLs** (you can keep `http://localhost:3000/auth/callback` if you still develop on your Mac).
+2. **Authentication** → **Hooks**: if you had already switched the hook on, nothing to change. The function inside the database was already updated to `https://mcp.visibll.in/mcp`.
+
+### 7.5 Supabase: sign-up emails (SMTP)
+
+Why: Supabase's built-in email sender only delivers to people in your own Supabase team and is limited to a few emails per hour. Real customers will not get their confirmation email without your own sender.
+
+1. Create a free account at an email service, for example <https://resend.com> or <https://brevo.com>.
+2. In that service add your domain **`visibll.in`** and follow its steps. It shows you a few DNS records (SPF, DKIM, sometimes DMARC). **Add each one in your DNS page** and wait until the service says **Verified**.
+3. In that service create SMTP credentials. You get: **host**, **port** (use `465` or `587`), **username**, **password**.
+4. Supabase → **Authentication** → **Emails** (or **Settings**) → **SMTP Settings** → turn on **Enable custom SMTP** and enter:
+   - **Sender email:** `no-reply@visibll.in`
+   - **Sender name:** `SERP Connect`
+   - **Host / Port / Username / Password:** from step 3
+5. Click **Save**.
+6. Optional but nice: **Authentication** → **Emails** → **Templates** → check that the **Confirm sign up** and **Reset password** emails look right. They use `{{ .ConfirmationURL }}` and will open `connect.visibll.in` because of the Site URL (7.1).
+7. **Test:** sign up on the live site with an email that is **not** in your Supabase team. The email must arrive (check spam), and its button must open `connect.visibll.in`.
+
+### 7.6 Google: new addresses
+
+Open <https://console.cloud.google.com> → select your project → **Google Auth Platform**.
+
+1. **Clients** → click your OAuth client → **Authorized redirect URIs** → **Add URI**, paste exactly (no space, no `/` at the end):
 
    ```
-   https://connect.serpforge.io/api/oauth/google/callback
+   https://connect.visibll.in/api/oauth/google/callback
    ```
-4. **Save** (it can take a few minutes to apply). No space and no `/` at the end.
+   Remove the old `serpforge.io` address if it is listed. Click **Save**. It can take a few minutes to apply.
+2. **Branding** (the consent screen):
+   - **Application home page:** `https://connect.visibll.in/`
+   - **Application privacy policy link:** `https://connect.visibll.in/privacy`
+   - **Authorized domains:** add `visibll.in` (not `connect.visibll.in`, no `https://`). Remove `serpforge.io`.
+3. **Data access** (scopes): nothing changes.
+4. Google may ask you to **verify ownership of `visibll.in`** (Google Search Console → add the domain, using a DNS record). Do this with the Google account that owns the project.
+5. While the Google app is in **Testing**, only accounts listed as **test users** can connect, and their connection expires after 7 days. Before real customers, click **Publish app** and go through Google's verification (full steps in `GOOGLE-SETUP-SIMPLE.md`).
 
-While the Google app is in **Testing**, only accounts listed as **test users** can connect, and their connections expire after 7 days (details in `GOOGLE-SETUP-SIMPLE.md`).
+If you also use Bing or Clarity, they need no address changes.
 
 ---
 
@@ -392,15 +438,15 @@ While the Google app is in **Testing**, only accounts listed as **test users** c
 
 Tick each one, in order:
 
-- [ ] `https://connect.serpforge.io` opens with a padlock.
-- [ ] Create an account. The confirmation email link opens `connect.serpforge.io` (not `localhost`).
-- [ ] Sign in. The **Integrations** page appears, and the "Use with Claude" box shows `https://mcp.serpforge.io/mcp`.
+- [ ] `https://connect.visibll.in` opens with a padlock.
+- [ ] Create an account with an outside email address. The confirmation email arrives, and its link opens `connect.visibll.in` (not `localhost`).
+- [ ] Sign in. The **Integrations** page appears, and the "Use with Claude" box shows `https://mcp.visibll.in/mcp`.
 - [ ] **Connect Search Console**, then **Connect GA4**, with a Google account that has access. Your properties appear.
 - [ ] **Disconnect** removes them.
-- [ ] In this project, ask Claude to run the check `pnpm mcp:check https://mcp.serpforge.io/mcp`. A line marked **FAIL** names what is missing.
-- [ ] In Claude: **Settings** → **Connectors** → **Add custom connector** → paste `https://mcp.serpforge.io/mcp` → sign in → **Approve**.
+- [ ] In this project, ask Claude to run the check `pnpm mcp:check https://mcp.visibll.in/mcp`. A line marked **FAIL** names what is missing.
+- [ ] In Claude: **Settings** → **Connectors** → **Add custom connector** → paste `https://mcp.visibll.in/mcp` → sign in → **Approve**.
 - [ ] Ask Claude: "Run get_connection_status".
-- [ ] **Reboot test (once):** on the VPS as root run `reboot`. Wait two minutes, then open `https://mcp.serpforge.io/healthz`. If it shows `ok`, PM2 restarts the app after a reboot as it should.
+- [ ] **Reboot test (once):** on the VPS as root run `reboot`. Wait two minutes, then open `https://mcp.visibll.in/healthz`. If it shows `ok`, PM2 restarts the app after a reboot as it should.
 
 When everything works, move `web.env` and `mcp.env` to the Trash and empty it (keep the values in your password manager).
 
@@ -422,7 +468,7 @@ If it does not help, send Claude the error text. **Never include passwords or ke
 | Logs say `ENETUNREACH` or `connect ETIMEDOUT` to the database | The direct (IPv6-only) database address is used | Use the **pooler** address (section 2) |
 | Logs say `self-signed certificate in certificate chain` | The database certificate was not recognised | The project ships Supabase's root certificate. If Supabase changed it, set `SUPABASE_DB_CA` to the new certificate text (Supabase → Project Settings → Database → SSL Configuration → Download certificate) |
 | Sign-up email goes to localhost | Supabase Site URL not updated | 7.1 |
-| `redirect_uri_mismatch` from Google | The address is not registered | 7.4, exactly as written |
+| `redirect_uri_mismatch` from Google | The address is not registered | 7.6, exactly as written |
 | "Connect" button greyed out | Google settings or `DATA_MODE=live` missing | Check the 13 settings, then redeploy |
 | The new setting does not work | Vercel applies settings only on a new deployment | Deployments → **Redeploy** |
 
@@ -441,7 +487,7 @@ If it does not help, send Claude the error text. **Never include passwords or ke
 | `certbot` fails with "DNS problem" | The address does not point to the VPS yet | Part A, step 4; wait, retry |
 | Browser: "502 Bad Gateway" | Nginx cannot reach the app | `pm2 status` (must be `online`); if not: `pm2 restart serp-mcp` |
 | Browser: "This site can't be reached" | DNS or firewall | Check DNS (Part A), and that the firewall allows 80 and 443 (`ufw status`) |
-| Claude: connector fails to connect | Supabase steps not done, or addresses mismatch | 7.2 and 7.3; run `pnpm mcp:check https://mcp.serpforge.io/mcp` |
+| Claude: connector fails to connect | Supabase steps not done, or addresses mismatch | 7.2 and 7.3; run `pnpm mcp:check https://mcp.visibll.in/mcp` |
 | Claude says it cannot sign in | OAuth Server is off | 7.3 |
 | Connected on the website but Claude's reports fail | Different `SECRET_KEYS` on Vercel and the VPS | Make the values identical (section 2) |
 
@@ -486,7 +532,7 @@ The app holds no data (everything is in Supabase). Make a new VPS, repeat Part B
 | | Website | MCP server |
 |---|---|---|
 | Runs on | Vercel | Your VPS |
-| Address | `https://connect.serpforge.io` | `https://mcp.serpforge.io` (connector link ends in `/mcp`) |
+| Address | `https://connect.visibll.in` | `https://mcp.visibll.in` (connector link ends in `/mcp`) |
 | Settings live in | Vercel → Environment Variables | `/home/serp/mcp.env` |
 | Settings file to use | `web.env` (13 names) | `mcp.env` (11 names) |
 | Updates | Automatic when you push to `main` | `bash ~/SERP-Connect/deploy/vps/deploy.sh` |

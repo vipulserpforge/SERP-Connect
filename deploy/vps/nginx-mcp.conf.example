@@ -1,5 +1,5 @@
-# Nginx site for the MCP server. Copy to /etc/nginx/sites-available/mcp.serpforge.io (setup-server.sh does this).
-# HTTPS is added afterwards by:  certbot --nginx -d mcp.serpforge.io
+# Nginx site for the MCP server. Copy to /etc/nginx/sites-available/mcp.visibll.in (setup-server.sh does this).
+# HTTPS is added afterwards by:  certbot --nginx -d mcp.visibll.in
 # Per-visitor request limit (by IP address): 20 requests/second on average, bursts of up to 40. Claude connects from a few
 # addresses and the MCP server also limits each signed-in user, so this only stops floods and password-style guessing.
 limit_req_zone $binary_remote_addr zone=mcp_per_ip:10m rate=20r/s;
@@ -7,7 +7,7 @@ limit_req_zone $binary_remote_addr zone=mcp_per_ip:10m rate=20r/s;
 server {
     listen 80;
     listen [::]:80;
-    server_name mcp.serpforge.io;
+    server_name mcp.visibll.in;
 
     # MCP requests are small JSON messages.
     client_max_body_size 1m;

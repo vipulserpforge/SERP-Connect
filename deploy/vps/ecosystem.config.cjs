@@ -19,7 +19,7 @@ module.exports = {
       node_args: [`--env-file=${envFile}`],
       env: {
         NODE_ENV: "production",
-        // Nginx forwards https://mcp.serpforge.io to this local port. Do not open it in the firewall.
+        // Nginx forwards https://mcp.visibll.in to this local port. Do not open it in the firewall.
         PORT: "8787",
       },
       instances: 1,
