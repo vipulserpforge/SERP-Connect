@@ -30,12 +30,12 @@ const fmt = (iso: string | null) => (iso ? `${iso.slice(0, 16).replace("T", " ")
 /** What each state means. Only states the app has evidence for are shown. */
 function stateOf(c: ProviderConnection): { label: string; tone: string; detail: string } {
   if (c.status === "needs_attention") {
-    if (c.lastErrorCode === "FORBIDDEN") return { label: "Permission denied", tone: "bg-amber-100 text-amber-800", detail: "Clarity rejected this token for the export. Replace the token." };
-    if (c.lastErrorCode === "AUTH_EXPIRED") return { label: "Invalid credentials", tone: "bg-red-100 text-red-800", detail: "Clarity no longer accepts this token. Replace the token." };
-    return { label: "Needs attention", tone: "bg-amber-100 text-amber-800", detail: "The stored token could not be used. Replace the token." };
+    if (c.lastErrorCode === "FORBIDDEN") return { label: "Permission denied", tone: "tone-warn", detail: "Clarity rejected this token for the export. Replace the token." };
+    if (c.lastErrorCode === "AUTH_EXPIRED") return { label: "Invalid credentials", tone: "tone-err", detail: "Clarity no longer accepts this token. Replace the token." };
+    return { label: "Needs attention", tone: "tone-warn", detail: "The stored token could not be used. Replace the token." };
   }
-  if (c.status === "pending") return { label: "Awaiting verification", tone: "bg-stone-200 text-stone-800", detail: "Saved but never used. Verifying makes one request to Clarity." };
-  return { label: "Connected", tone: "bg-emerald-100 text-emerald-800", detail: c.lastValidatedAt ? `Verified ${fmt(c.lastValidatedAt)}.` : "Verified." };
+  if (c.status === "pending") return { label: "Awaiting verification", tone: "tone-neutral", detail: "Saved but never used. Verifying makes one request to Clarity." };
+  return { label: "Connected", tone: "tone-ok", detail: c.lastValidatedAt ? `Verified ${fmt(c.lastValidatedAt)}.` : "Verified." };
 }
 
 interface Props {
@@ -55,7 +55,7 @@ export function ClarityCard({ connections, properties, quotas, notice, error, er
     <section id="clarity" className="card !p-0 overflow-hidden">
       <div className="flex flex-wrap items-center justify-between gap-4 p-6">
         <div>
-          <h2 className="text-xl font-medium">Microsoft Clarity</h2>
+          <h2 className="flex items-center gap-3 text-xl font-medium"><span aria-hidden="true" className="flex h-9 w-9 items-center justify-center rounded-xl text-xs font-semibold" style={{ background: "rgba(15,163,163,0.2)", color: "var(--teal)" }}>CL</span>Microsoft Clarity</h2>
           <p className="muted mt-1 text-sm">
             {connections.length === 0
               ? "Visitor behaviour: engagement, clicks, scrolling and errors for the last 1 to 3 days."
@@ -65,12 +65,12 @@ export function ClarityCard({ connections, properties, quotas, notice, error, er
       </div>
 
       {notice && NOTICES[notice] && (
-        <p role="status" className="mx-6 mb-4 rounded-xl bg-emerald-100 px-3.5 py-2.5 text-sm text-emerald-900">
+        <p role="status" className="mx-6 mb-4 alert tone-ok">
           {NOTICES[notice]}
         </p>
       )}
       {message && (
-        <p role="alert" className="mx-6 mb-4 rounded-xl bg-red-100 px-3.5 py-2.5 text-sm text-red-900">
+        <p role="alert" className="mx-6 mb-4 alert tone-err">
           {message}
         </p>
       )}
@@ -122,7 +122,7 @@ export function ClarityCard({ connections, properties, quotas, notice, error, er
                 <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${st.tone}`}>{st.label}</span>
                 <span className="font-medium">{c.accountLabel}</span>
                 {c.lastErrorCode === "PROVIDER_RATE_LIMITED" && (
-                  <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">Rate-limited by Clarity</span>
+                  <span className="rounded-full tone-warn px-2.5 py-0.5 text-xs font-medium">Rate-limited by Clarity</span>
                 )}
               </div>
               <div className="flex flex-wrap items-center gap-3">

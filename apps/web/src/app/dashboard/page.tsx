@@ -21,9 +21,9 @@ const GROUPS = [
 ] as const;
 
 const STATUS_STYLE: Record<string, string> = {
-  connected: "bg-emerald-100 text-emerald-800",
-  needs_attention: "bg-amber-100 text-amber-800",
-  revoked: "bg-red-100 text-red-800",
+  connected: "tone-ok",
+  needs_attention: "tone-warn",
+  revoked: "tone-err",
 };
 
 const OAUTH_ERRORS: Record<string, string> = {
@@ -65,7 +65,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     [connections, properties] = await Promise.all([repo.listConnections(user.userId), repo.listProperties(user.userId)]);
   } catch (err) {
     return (
-      <main className="mx-auto max-w-5xl px-5 py-16">
+      <main className="container-x py-16">
         <h1 className="text-3xl font-medium">Dashboard unavailable</h1>
         <p className="muted mt-2">{toConnectorError(err, "dashboard").message}</p>
       </main>
@@ -90,37 +90,112 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   }
   const mcpUrl = getEnv().NEXT_PUBLIC_MCP_URL;
 
+  // Overview numbers, all derived from what is already loaded above.
+  const googleConnected = connections.some((c) => c.provider === "google" && c.status === "connected");
+  const enabledCount = properties.filter((p) => p.enabledForMcp).length;
+  const attention = connections.filter((c) => c.status !== "connected").length;
+  const sourcesConnected = GROUPS.filter((g) => properties.some((p) => p.provider === g.key) || connections.some((c) => c.provider === g.connection && c.status === "connected" && (g.connection !== "google" || c.grantedScopes.includes(GOOGLE_SCOPES[g.key as "gsc" | "ga4"])))).length;
+  const claudeLinked = grants ? grants.length > 0 : false;
+  const SETUP = [
+    { label: "Connect Google", done: googleConnected, href: "#gsc" },
+    { label: "Choose properties for Claude", done: enabledCount > 0, href: "#gsc" },
+    { label: "Add the connector in Claude", done: claudeLinked, href: "/mcp" },
+  ];
+  const doneCount = SETUP.filter((x) => x.done).length;
+  const NAV = [
+    { id: "overview", label: "Overview", dot: null },
+    ...GROUPS.map((g) => ({ id: g.key, label: { gsc: "Search Console", ga4: "GA4", clarity: "Clarity", bing: "Bing" }[g.key], dot: properties.some((p) => p.provider === g.key) })),
+    { id: "claude", label: "Use with Claude", dot: null },
+  ];
+
   return (
-    <main className="mx-auto max-w-6xl px-5 py-12">
-      <header>
-        <h1 className="text-3xl font-medium sm:text-4xl">
+    <main className="container-x py-8 sm:py-10 lg:grid lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-10">
+      <aside className="lg:sticky lg:top-28 lg:self-start">
+        <nav aria-label="Dashboard sections" className="flex flex-wrap gap-2 pb-3 lg:flex-col lg:flex-nowrap lg:gap-1 lg:pb-0">
+          {NAV.map((n) => (
+            <a key={n.id} href={`#${n.id}`} className="flex min-h-11 shrink-0 items-center gap-2.5 whitespace-nowrap rounded-xl px-3.5 text-sm transition hover:bg-white/10" style={{ border: "1px solid var(--line)" }}>
+              {n.dot !== null && <span aria-hidden="true" className="h-2 w-2 rounded-full" style={{ background: n.dot ? "#34d399" : "rgba(255,255,255,0.25)" }} />}
+              {n.label}
+              {n.dot !== null && <span className="sr-only">{n.dot ? "(connected)" : "(not connected)"}</span>}
+            </a>
+          ))}
+        </nav>
+        <p className="muted mt-6 hidden break-all px-1 text-xs lg:block">
+          Signed in as
+          <br />
+          <span className="text-white">{user.email ?? "unknown"}</span>
+        </p>
+      </aside>
+
+      <div className="min-w-0">
+      <header id="overview">
+        <h1 className="text-3xl font-medium tracking-tight sm:text-5xl">
           Your <span className="accent">integrations</span>
         </h1>
-        <p className="muted mt-2 text-sm">
-          Signed in as {user.email ?? "unknown"}. Provider accounts you connect are separate from this login.
+        <p className="muted mt-3 max-w-2xl text-sm sm:text-base">
+          <span className="lg:hidden">Signed in as {user.email ?? "unknown"}. </span>Provider accounts you connect are separate from this login.
         </p>
-        <ol className="muted mt-5 flex flex-wrap gap-x-6 gap-y-1 text-xs">
-          <li>1. Connect Google</li>
-          <li>2. Choose properties for Claude</li>
-          <li>
-            3. <Link href="/mcp" className="underline" style={{ color: "var(--teal)" }}>Add the connector in Claude</Link>
-          </li>
-        </ol>
+
+        <dl className="mt-7 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {[
+            { k: "Sources connected", v: `${sourcesConnected} of ${GROUPS.length}`, tone: "" },
+            { k: "Visible to Claude", v: `${enabledCount} of ${properties.length}`, tone: "" },
+            { k: "Needs attention", v: attention === 0 ? "All healthy" : String(attention), tone: attention === 0 ? "tone-ok" : "tone-warn" },
+            { k: "Claude connector", v: grants ? `${grants.length} ${grants.length === 1 ? "app" : "apps"} linked` : mcpUrl ? "Address ready" : "Not deployed", tone: "" },
+          ].map((t) => (
+            <div key={t.k} className="rounded-2xl p-4 sm:p-5" style={{ border: "1px solid var(--line)", background: "var(--surface)" }}>
+              <dt className="muted text-xs sm:text-sm">{t.k}</dt>
+              <dd className="mt-2">
+                <span className={`inline-block rounded-lg text-xl font-medium tabular-nums sm:text-2xl ${t.tone ? `${t.tone} px-2 py-0.5` : ""}`}>{t.v}</span>
+              </dd>
+            </div>
+          ))}
+        </dl>
+
+        <div className="mt-4 rounded-2xl p-5 sm:p-6" style={{ border: "1px solid var(--line)", background: "var(--surface)" }}>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-lg font-medium">{doneCount === SETUP.length ? "You're all set" : "Finish setting up"}</h2>
+            <p className="muted text-sm">
+              {doneCount} of {SETUP.length} done
+            </p>
+          </div>
+          <div className="mt-3 h-1.5 overflow-hidden rounded-full" style={{ background: "rgba(255,255,255,0.1)" }} role="progressbar" aria-valuemin={0} aria-valuemax={SETUP.length} aria-valuenow={doneCount} aria-label="Setup progress">
+            <div className="bar-in h-full rounded-full" style={{ width: `${(doneCount / SETUP.length) * 100}%`, background: "var(--teal-strong)" }} />
+          </div>
+          <ol className="mt-4 grid gap-2 sm:grid-cols-3">
+            {SETUP.map((st) => (
+              <li key={st.label}>
+                <Link href={st.href} className="flex min-h-11 items-center gap-3 rounded-xl px-3 py-2 text-sm transition hover:bg-white/10">
+                  <span aria-hidden="true" className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs ${st.done ? "tone-ok" : ""}`} style={st.done ? undefined : { border: "1px solid rgba(255,255,255,0.3)" }}>
+                    {st.done ? "✓" : ""}
+                  </span>
+                  <span className={st.done ? "muted line-through" : ""}>{st.label}</span>
+                  <span className="sr-only">{st.done ? "(done)" : "(to do)"}</span>
+                </Link>
+              </li>
+            ))}
+          </ol>
+          {doneCount === SETUP.length && (
+            <p className="muted mt-3 text-sm">
+              Try asking Claude: “Which pages lost the most clicks last month?”
+            </p>
+          )}
+        </div>
       </header>
 
       {user.mock && (
-        <p className="mt-4 rounded-md bg-amber-100 px-3 py-2 text-sm text-amber-900">
+        <p className="mt-4 alert tone-warn">
           Mock mode: showing demo connections for a fixed demo user. No real sign-in is happening.
         </p>
       )}
 
       {(connected === "gsc" || connected === "ga4") && (
-        <p role="status" className="mt-4 rounded-md bg-emerald-100 px-3 py-2 text-sm text-emerald-900">
+        <p role="status" className="mt-4 alert tone-ok">
           {connected === "gsc" ? "Search Console" : "GA4"} account connected.
         </p>
       )}
       {syncedCount !== null && (
-        <p role="status" className="mt-4 rounded-md bg-emerald-100 px-3 py-2 text-sm text-emerald-900">
+        <p role="status" className="mt-4 alert tone-ok">
           {syncedCount === 0
             ? "This Google account has no Search Console properties it can read. Connect an account that has access."
             : `${syncedCount} Search Console ${syncedCount === 1 ? "property" : "properties"} available.`}
@@ -128,23 +203,23 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         </p>
       )}
       {ga4Count !== null && (
-        <p role="status" className="mt-4 rounded-md bg-emerald-100 px-3 py-2 text-sm text-emerald-900">
+        <p role="status" className="mt-4 alert tone-ok">
           {ga4Count === 0
             ? "This Google account has no Google Analytics 4 properties it can read. Connect an account that has access."
             : `${ga4Count} GA4 ${ga4Count === 1 ? "property" : "properties"} available.`}
         </p>
       )}
       {syncError && (
-        <p role="alert" className="mt-4 rounded-md bg-amber-100 px-3 py-2 text-sm text-amber-900">
+        <p role="alert" className="mt-4 alert tone-warn">
           {SYNC_ERRORS[syncError] ?? "Properties could not be refreshed. Try again."}
         </p>
       )}
       {oauthError && (
-        <p role="alert" className="mt-4 rounded-md bg-red-100 px-3 py-2 text-sm text-red-900">
+        <p role="alert" className="mt-4 alert tone-err">
           {OAUTH_ERRORS[oauthError] ?? OAUTH_ERRORS.failed}
         </p>
       )}
-      {notice && NOTICES[notice] && <p className="mt-4 rounded-md bg-amber-100 px-3 py-2 text-sm text-amber-900">{NOTICES[notice]}</p>}
+      {notice && NOTICES[notice] && <p className="mt-4 alert tone-warn">{NOTICES[notice]}</p>}
 
       <div className="mt-8 space-y-6">
         {GROUPS.map((g) => {
@@ -186,10 +261,16 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           );
           const total = properties.filter((x) => x.provider === g.key).length;
           return (
-            <section key={g.key} className="card !p-0 overflow-hidden">
+            <section key={g.key} id={g.key} className="card !p-0 overflow-hidden">
               <div className="flex flex-wrap items-center justify-between gap-4 p-6">
                 <div>
-                  <h2 className="text-xl font-medium">{g.name}</h2>
+                  <h2 className="flex items-center gap-3 text-xl font-medium">
+                    <span aria-hidden="true" className="flex h-9 w-9 items-center justify-center rounded-xl text-xs font-semibold" style={{ background: "rgba(15,163,163,0.2)", color: "var(--teal)" }}>
+                      {g.key === "gsc" ? "GSC" : "GA4"}
+                    </span>
+                    {g.name}
+                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${rows.length > 0 ? "tone-ok" : "tone-neutral"}`}>{rows.length > 0 ? "Connected" : "Not connected"}</span>
+                  </h2>
                   <p className="muted mt-1 text-sm">
                     {rows.length === 0 ? (g.connection === "google" && !googleReady ? "Available after Google Cloud setup (final phase)." : g.note) : `${rows.length} ${rows.length === 1 ? "account" : "accounts"} · ${total} ${total === 1 ? "property" : "properties"}`}
                   </p>
@@ -219,7 +300,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                   <div key={c.id} className="border-t" style={{ borderColor: "var(--line)" }}>
                     <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-4" style={{ background: "rgba(255,255,255,0.03)" }}>
                       <div className="flex items-center gap-3 text-sm">
-                        <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_STYLE[c.status] ?? "bg-stone-200 text-stone-800"}`}>
+                        <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_STYLE[c.status] ?? "tone-neutral"}`}>
                           {c.status.replace("_", " ")}
                         </span>
                         <span className="font-medium">{c.accountLabel}</span>
@@ -277,7 +358,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         })}
       </div>
 
-      <section className="card mt-8">
+      <section id="claude" className="card mt-8">
         <h2 className="text-lg font-medium">Use with Claude</h2>
         {mcpUrl ? (
           <p className="mt-2 text-sm">
@@ -299,7 +380,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                   </span>
                   <form action={revokeClientGrantAction}>
                     <input type="hidden" name="clientId" value={g.clientId} />
-                    <button className="text-xs text-red-400 underline">Remove access</button>
+                    <button className="min-h-9 text-xs text-red-300 underline">Remove access</button>
                   </form>
                 </li>
               ))}
@@ -307,6 +388,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           </div>
         )}
       </section>
+      </div>
     </main>
   );
 }

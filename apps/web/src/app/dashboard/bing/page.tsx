@@ -168,7 +168,7 @@ export default async function BingReportPage({ searchParams }: { searchParams: P
       </nav>
       <nav aria-label="Time window" className="mt-3 flex flex-wrap gap-2 text-sm">
         {WINDOWS.map((w) => (
-          <Link key={w.key} href={link({ days: w.key })} aria-current={w.key === window.key ? "page" : undefined} className={w.key === window.key ? "rounded-full bg-emerald-100 px-3 py-1 text-emerald-900" : "muted rounded-full px-3 py-1 underline"}>
+          <Link key={w.key} href={link({ days: w.key })} aria-current={w.key === window.key ? "page" : undefined} className={w.key === window.key ? "rounded-full tone-ok px-3 py-1" : "muted rounded-full px-3 py-1 underline"}>
             {w.label}
           </Link>
         ))}
@@ -176,7 +176,7 @@ export default async function BingReportPage({ searchParams }: { searchParams: P
       <p className="muted mt-2 text-xs">{meta.blurb} Bing's reports have no date range of their own: the window above filters the rows Bing returns.</p>
 
       {error && (
-        <p role="alert" className="mt-6 rounded-xl bg-red-100 px-4 py-3 text-sm text-red-900">
+        <p role="alert" className="mt-6 rounded-xl tone-err px-4 py-3 text-sm">
           {error}
         </p>
       )}
@@ -222,11 +222,11 @@ export default async function BingReportPage({ searchParams }: { searchParams: P
               {result.completeness !== "complete" && " Bing does not say whether this report is complete."}
             </p>
           </div>
-          {result.mock && <p className="rounded-xl bg-amber-100 px-4 py-2 text-sm text-amber-900">Demo data: this is not from Bing.</p>}
+          {result.mock && <p className="rounded-xl tone-warn px-4 py-2 text-sm">Demo data: this is not from Bing.</p>}
           {result.warnings
             .filter((w) => w.code !== "MOCK_DATA")
             .map((w) => (
-              <p key={w.code} role="status" className="rounded-xl bg-amber-100 px-4 py-2 text-sm text-amber-900">
+              <p key={w.code} role="status" className="rounded-xl tone-warn px-4 py-2 text-sm">
                 {w.message}
               </p>
             ))}

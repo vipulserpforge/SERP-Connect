@@ -2,18 +2,25 @@
 
 /* Brand: deep green-black surface, orange call to action, teal accents from the logo. */
 :root {
-  --bg: #07110f;
+  --bg: #06100e;
   --bg-2: #0b2623;
-  --surface: rgba(255, 255, 255, 0.04);
+  --surface: rgba(255, 255, 255, 0.045);
+  --surface-2: rgba(255, 255, 255, 0.075);
   --line: rgba(255, 255, 255, 0.12);
   --fg: #ffffff;
-  --muted: rgba(255, 255, 255, 0.68);
+  --muted: rgba(255, 255, 255, 0.72);
   --brand: #ff7a00;
   --brand-hover: #ff8f26;
   --teal: #abdcd6;
+  --teal-strong: #0fa3a3;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @theme inline {
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: 1.25rem;
+  --text-sm: 0.9375rem;
+  --text-sm--line-height: 1.5rem;
   --font-sans: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
   --font-serif: var(--font-playfair), Georgia, serif;
 }
@@ -23,35 +30,48 @@
 
 html {
   color-scheme: dark;
+  scroll-behavior: smooth;
+  scroll-padding-top: 6rem;
 }
 
 body {
   background-color: var(--bg);
   background-image:
-    radial-gradient(1200px 600px at 15% -10%, var(--bg-2), transparent 70%),
-    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
-  background-size: auto, 56px 56px, 56px 56px;
+    radial-gradient(1100px 560px at 12% -8%, var(--bg-2), transparent 70%),
+    radial-gradient(900px 500px at 100% 30%, rgba(15, 163, 163, 0.07), transparent 70%),
+    linear-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.022) 1px, transparent 1px);
+  background-size: auto, auto, 56px 56px, 56px 56px;
   color: var(--fg);
   font-family: var(--font-sans);
 }
 
 @layer components {
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium text-white transition;
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition duration-200;
+    /* Dark ink on the brand orange: white would only reach 2.6:1 contrast. */
+    color: #1a0e00;
     background: var(--brand);
-    box-shadow: 0 6px 24px rgba(255, 122, 0, 0.35);
+    box-shadow: 0 6px 24px rgba(255, 122, 0, 0.3);
   }
   .btn-primary:hover {
     background: var(--brand-hover);
+    transform: translateY(-1px);
+  }
+  .btn-primary:active {
+    transform: translateY(0) scale(0.98);
   }
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium transition;
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium transition duration-200;
     border: 1px solid var(--line);
     background: var(--surface);
   }
   .btn-ghost:hover {
-    border-color: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.32);
+    background: var(--surface-2);
+  }
+  .btn-ghost:active {
+    transform: scale(0.98);
   }
   .card {
     @apply rounded-2xl p-6;
@@ -59,12 +79,13 @@ body {
     background: var(--surface);
   }
   .field {
-    @apply mt-1.5 w-full rounded-xl px-3.5 py-2.5 text-sm outline-none;
+    @apply mt-1.5 min-h-11 w-full rounded-xl px-3.5 py-2.5 text-base outline-none transition sm:text-sm;
     border: 1px solid var(--line);
     background: rgba(255, 255, 255, 0.05);
   }
   .field:focus {
     border-color: var(--brand);
+    background: rgba(255, 255, 255, 0.08);
   }
   .accent {
     font-family: var(--font-serif);
@@ -74,11 +95,143 @@ body {
   .muted {
     color: var(--muted);
   }
+  .container-x {
+    @apply mx-auto w-full max-w-6xl px-5 sm:px-6;
+  }
+  .pill {
+    @apply inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium;
+    border: 1px solid var(--line);
+    background: var(--surface);
+  }
+
+  /* Status tones for dark surfaces: tinted fill, light text (>= 4.5:1). */
+  .tone-ok {
+    background: rgba(52, 211, 153, 0.14);
+    color: #86efc0;
+  }
+  .tone-warn {
+    background: rgba(251, 191, 36, 0.14);
+    color: #fcd34d;
+  }
+  .tone-err {
+    background: rgba(248, 113, 113, 0.15);
+    color: #fca5a5;
+  }
+  .tone-neutral {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.85);
+  }
+  .alert {
+    @apply rounded-xl px-4 py-3 text-sm leading-relaxed;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
 }
 
 a:focus-visible,
 button:focus-visible,
-input:focus-visible {
+input:focus-visible,
+summary:focus-visible {
   outline: 2px solid var(--brand);
   outline-offset: 2px;
+}
+
+/* ---- hero artwork: the logo's two overlapping rounded squares, as glass ---- */
+.glass-shape {
+  position: absolute;
+  border-radius: 24%;
+  background: linear-gradient(145deg, rgba(171, 220, 214, 0.14), rgba(255, 255, 255, 0.02) 60%);
+  box-shadow:
+    inset 0 0 40px rgba(171, 220, 214, 0.1),
+    0 30px 80px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(2px);
+}
+/* A gradient rim cut out of the square's edge, like light catching thick glass. */
+.glass-shape::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 9px;
+  background: conic-gradient(from 200deg, rgba(171, 220, 214, 0.75), rgba(255, 255, 255, 0.08) 22%, rgba(255, 122, 0, 0.55) 45%, rgba(15, 163, 163, 0.5) 62%, rgba(255, 255, 255, 0.1) 80%, rgba(171, 220, 214, 0.75));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+.glow-orb {
+  position: absolute;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(255, 122, 0, 0.45), transparent 65%);
+  filter: blur(8px);
+}
+
+/* ---- motion: transform and opacity only; all of it off for reduced motion ---- */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes drift-a {
+  50% {
+    transform: translate3d(8px, -14px, 0) rotate(1.5deg);
+  }
+}
+@keyframes drift-b {
+  50% {
+    transform: translate3d(-10px, 12px, 0) rotate(-1.5deg);
+  }
+}
+@keyframes grow-x {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .enter {
+    animation: rise 0.8s var(--ease) both;
+    animation-delay: calc(var(--i, 0) * 80ms);
+  }
+  .drift-a {
+    animation: drift-a 11s ease-in-out infinite;
+  }
+  .drift-b {
+    animation: drift-b 13s ease-in-out infinite;
+  }
+  .bar-in {
+    transform-origin: left;
+    animation: grow-x 1.1s var(--ease) both;
+    animation-delay: 0.5s;
+  }
+  /* Scroll entrance where the browser supports it; elsewhere content simply shows. */
+  @supports (animation-timeline: view()) {
+    .reveal {
+      animation: rise linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 35%;
+    }
+  }
+  .lift {
+    transition:
+      transform 0.25s var(--ease),
+      border-color 0.25s;
+  }
+  .lift:hover {
+    transform: translateY(-3px);
+    border-color: rgba(255, 255, 255, 0.28);
+  }
+}
+
+details > summary {
+  list-style: none;
+}
+details > summary::-webkit-details-marker {
+  display: none;
+}
+details[open] .chev {
+  transform: rotate(180deg);
 }

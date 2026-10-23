@@ -31,14 +31,14 @@ const fmt = (iso: string | null) => (iso ? `${iso.slice(0, 16).replace("T", " ")
 /** Only states the app has evidence for are shown. */
 function stateOf(c: ProviderConnection): { label: string; tone: string; detail: string } {
   if (c.status === "needs_attention" || c.status === "revoked") {
-    if (c.lastErrorCode === "AUTH_REVOKED" || c.status === "revoked") return { label: "Reconnect needed", tone: "bg-red-100 text-red-800", detail: "Bing access was revoked or expired. Reconnect below." };
-    if (c.lastErrorCode === "AUTH_EXPIRED") return { label: "Invalid credentials", tone: "bg-red-100 text-red-800", detail: "Bing rejected the stored credentials. Reconnect below." };
-    return { label: "Needs attention", tone: "bg-amber-100 text-amber-800", detail: "The stored credentials could not be used. Reconnect below." };
+    if (c.lastErrorCode === "AUTH_REVOKED" || c.status === "revoked") return { label: "Reconnect needed", tone: "tone-err", detail: "Bing access was revoked or expired. Reconnect below." };
+    if (c.lastErrorCode === "AUTH_EXPIRED") return { label: "Invalid credentials", tone: "tone-err", detail: "Bing rejected the stored credentials. Reconnect below." };
+    return { label: "Needs attention", tone: "tone-warn", detail: "The stored credentials could not be used. Reconnect below." };
   }
   if (c.status === "pending") {
-    return { label: "Not verified yet", tone: "bg-stone-200 text-stone-800", detail: "Saved, but Bing has not confirmed it yet. Use Refresh sites: if Bing answers, the connection is verified." };
+    return { label: "Not verified yet", tone: "tone-neutral", detail: "Saved, but Bing has not confirmed it yet. Use Refresh sites: if Bing answers, the connection is verified." };
   }
-  return { label: "Connected", tone: "bg-emerald-100 text-emerald-800", detail: c.lastValidatedAt ? `Bing last answered ${fmt(c.lastValidatedAt)}.` : "Bing answered." };
+  return { label: "Connected", tone: "tone-ok", detail: c.lastValidatedAt ? `Bing last answered ${fmt(c.lastValidatedAt)}.` : "Bing answered." };
 }
 
 interface Props {
@@ -69,7 +69,7 @@ export function BingCard({ connections, properties, notice, error, errorMessage,
     <section id="bing" className="card !p-0 overflow-hidden">
       <div className="flex flex-wrap items-center justify-between gap-4 p-6">
         <div>
-          <h2 className="text-xl font-medium">Bing Webmaster Tools</h2>
+          <h2 className="flex items-center gap-3 text-xl font-medium"><span aria-hidden="true" className="flex h-9 w-9 items-center justify-center rounded-xl text-xs font-semibold" style={{ background: "rgba(15,163,163,0.2)", color: "var(--teal)" }}>BI</span>Bing Webmaster Tools</h2>
           <p className="muted mt-1 text-sm">
             {connections.length === 0
               ? "Bing search traffic, queries and crawl statistics for your verified sites. Read-only."
@@ -79,24 +79,24 @@ export function BingCard({ connections, properties, notice, error, errorMessage,
       </div>
 
       {notice && NOTICES[notice] && (
-        <p role="status" className="mx-6 mb-4 rounded-xl bg-emerald-100 px-3.5 py-2.5 text-sm text-emerald-900">
+        <p role="status" className="mx-6 mb-4 alert tone-ok">
           {NOTICES[notice]}
           {n !== null && notice !== "removed" && (n === 0 ? " No verified sites were found yet." : ` ${n} verified ${n === 1 ? "site" : "sites"} found.`)}
           {skipped > 0 && ` ${skipped} listed ${skipped === 1 ? "site is" : "sites are"} not verified in Bing and was skipped.`}
         </p>
       )}
       {syncError && (
-        <p role="alert" className="mx-6 mb-4 rounded-xl bg-amber-100 px-3.5 py-2.5 text-sm text-amber-900">
+        <p role="alert" className="mx-6 mb-4 alert tone-warn">
           The account was saved, but the site list could not be read: {ERRORS[syncError] ?? ERRORS.INTERNAL_ERROR}
         </p>
       )}
       {message && (
-        <p role="alert" className="mx-6 mb-4 rounded-xl bg-red-100 px-3.5 py-2.5 text-sm text-red-900">
+        <p role="alert" className="mx-6 mb-4 alert tone-err">
           {message}
         </p>
       )}
       {demo && (
-        <p className="mx-6 mb-4 rounded-xl bg-amber-100 px-3.5 py-2.5 text-xs text-amber-900">Demo mode: Bing is not contacted and the data is made up.</p>
+        <p className="mx-6 mb-4 rounded-xl tone-warn px-3.5 py-2.5 text-xs">Demo mode: Bing is not contacted and the data is made up.</p>
       )}
 
       {enabled ? (
@@ -108,7 +108,7 @@ export function BingCard({ connections, properties, notice, error, errorMessage,
           <div className="mt-4 grid gap-6 md:grid-cols-2">
             <div>
               <h3 className="text-sm font-medium">
-                Connect with your Bing login <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-800">Recommended</span>
+                Connect with your Bing login <span className="rounded-full tone-ok px-2 py-0.5 text-xs">Recommended</span>
               </h3>
               <p className="muted mt-1 text-xs">You sign in at Bing and approve access. Your password never reaches us.</p>
               <form action={startBingOAuthAction} className="mt-3">

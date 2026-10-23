@@ -59,7 +59,7 @@ function Block({ name, rows, dims, truncated }: { name: string; rows: ReportRow[
   return (
     <section className="card !p-0 overflow-hidden">
       <h3 className="px-6 pt-5 text-lg font-medium">{name}</h3>
-      {truncated && <p className="mx-6 mt-2 rounded-lg bg-amber-100 px-3 py-2 text-xs text-amber-900">Clarity's {CLARITY_MAX_ROWS}-row limit was reached for this metric, so rows are missing. Add or change a dimension to narrow it.</p>}
+      {truncated && <p className="mx-6 mt-2 rounded-lg tone-warn px-3 py-2 text-xs">Clarity's {CLARITY_MAX_ROWS}-row limit was reached for this metric, so rows are missing. Add or change a dimension to narrow it.</p>}
       <div className="mt-3 overflow-x-auto">
         <table className="w-full min-w-max text-left text-sm">
           <caption className="sr-only">{name}</caption>
@@ -196,7 +196,7 @@ export default async function ClarityReportsPage({ searchParams }: { searchParam
       </section>
 
       {errorCode && (
-        <p role="alert" className="mt-6 rounded-xl bg-red-100 px-3.5 py-2.5 text-sm text-red-900">
+        <p role="alert" className="mt-6 alert tone-err">
           {errorCode === "INVALID_QUERY" ? (sp.msg ?? "Those settings are not supported by Clarity.") : (ERRORS[errorCode] ?? ERRORS.INTERNAL_ERROR)}
         </p>
       )}
@@ -218,8 +218,8 @@ export default async function ClarityReportsPage({ searchParams }: { searchParam
         <>
           <section className="card mt-6 text-sm" aria-label="Result details">
             <div className="flex flex-wrap items-center gap-2">
-              {result.mock && <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">Demo data: not from Clarity</span>}
-              <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${result.cache.stale ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"}`}>
+              {result.mock && <span className="rounded-full tone-warn px-2.5 py-0.5 text-xs font-medium">Demo data: not from Clarity</span>}
+              <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${result.cache.stale ? "tone-warn" : "tone-ok"}`}>
                 {result.cache.stale ? "Saved result (expired)" : "Saved result"}
               </span>
               <span className="muted">
@@ -229,7 +229,7 @@ export default async function ClarityReportsPage({ searchParams }: { searchParam
             {result.warnings.length > 0 && (
               <ul className="mt-3 space-y-1.5" aria-label="Warnings">
                 {result.warnings.map((w) => (
-                  <li key={w.code + w.message} className="rounded-lg bg-amber-100 px-3 py-2 text-xs text-amber-900">
+                  <li key={w.code + w.message} className="rounded-lg tone-warn px-3 py-2 text-xs">
                     {w.message}
                   </li>
                 ))}

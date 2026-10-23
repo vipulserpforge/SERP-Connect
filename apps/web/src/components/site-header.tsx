@@ -3,7 +3,16 @@ import { signOutAction } from "@/app/actions";
 import { Logo } from "@/components/logo";
 import { getSessionUser } from "@/lib/server";
 
-/** Public header on every page. Shows Dashboard/Sign out when a valid session exists, otherwise Login/Sign up. */
+const NAV = [
+  { href: "/#how", label: "How it works" },
+  { href: "/#security", label: "Security" },
+  { href: "/#faq", label: "FAQ" },
+  { href: "/mcp", label: "MCP connector" },
+];
+
+const navLink = "rounded-lg px-3 py-2 text-sm muted transition hover:text-white";
+
+/** Public header on every page: floating glass bar, inline nav on desktop, a no-script menu on phones. */
 export async function SiteHeader() {
   let signedIn = false;
   try {
@@ -13,35 +22,92 @@ export async function SiteHeader() {
     signedIn = false;
   }
   return (
-    <header className="sticky top-0 z-20 border-b backdrop-blur" style={{ borderColor: "var(--line)", background: "rgba(7,17,15,0.75)" }}>
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-3.5">
-        <Link href="/" aria-label="SERP Connect home">
-          <Logo size={38} tagline />
-        </Link>
-        <nav className="flex items-center gap-1.5 text-sm sm:gap-3">
-          <Link href="/mcp" className="muted rounded-lg px-3 py-2 hover:text-white">
-            MCP
+    <header className="sticky top-0 z-30 px-3 pt-3 sm:px-5">
+      <div
+        className="mx-auto max-w-6xl rounded-2xl backdrop-blur-xl"
+        style={{ border: "1px solid var(--line)", background: "rgba(8,24,22,0.72)", boxShadow: "0 10px 40px rgba(0,0,0,0.3)" }}
+      >
+        <div className="flex items-center justify-between gap-3 px-4 py-2.5 sm:px-5">
+          <Link href="/" aria-label="SERP Connect home" className="shrink-0 rounded-lg">
+            <Logo size={38} tagline />
           </Link>
-          {signedIn ? (
-            <>
-              <Link href="/dashboard" className="btn-ghost !py-2">
-                Dashboard
+
+          <nav aria-label="Main" className="hidden items-center gap-1 lg:flex">
+            {NAV.map((n) => (
+              <Link key={n.href} href={n.href} className={navLink}>
+                {n.label}
               </Link>
-              <form action={signOutAction}>
-                <button className="muted rounded-lg px-3 py-2 hover:text-white">Sign out</button>
-              </form>
-            </>
-          ) : (
-            <>
-              <Link href="/login" className="muted rounded-lg px-3 py-2 hover:text-white">
-                Login
-              </Link>
-              <Link href="/signup" className="btn-primary !py-2">
-                Sign up
-              </Link>
-            </>
-          )}
-        </nav>
+            ))}
+          </nav>
+
+          <div className="hidden items-center gap-2 lg:flex">
+            {signedIn ? (
+              <>
+                <form action={signOutAction}>
+                  <button className={navLink}>Sign out</button>
+                </form>
+                <Link href="/dashboard" className="btn-primary">
+                  Dashboard
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link href="/login" className={navLink}>
+                  Login
+                </Link>
+                <Link href="/signup" className="btn-primary">
+                  Get started
+                </Link>
+              </>
+            )}
+          </div>
+
+          {/* Phones and tablets: a menu that works without JavaScript. */}
+          <details className="group relative lg:hidden">
+            <summary
+              aria-label="Menu"
+              className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl transition hover:bg-white/10"
+              style={{ border: "1px solid var(--line)" }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                <path className="group-open:hidden" d="M4 7h16M4 12h16M4 17h16" />
+                <path className="hidden group-open:block" d="M6 6l12 12M18 6L6 18" />
+              </svg>
+            </summary>
+            <nav
+              aria-label="Mobile"
+              className="absolute right-0 top-14 w-[min(86vw,320px)] rounded-2xl p-3"
+              style={{ border: "1px solid var(--line)", background: "rgba(8,24,22,0.97)", boxShadow: "0 24px 60px rgba(0,0,0,0.5)" }}
+            >
+              {NAV.map((n) => (
+                <Link key={n.href} href={n.href} className="block rounded-xl px-3 py-3 text-base hover:bg-white/10">
+                  {n.label}
+                </Link>
+              ))}
+              <div className="mt-2 grid gap-2 border-t pt-3" style={{ borderColor: "var(--line)" }}>
+                {signedIn ? (
+                  <>
+                    <Link href="/dashboard" className="btn-primary">
+                      Dashboard
+                    </Link>
+                    <form action={signOutAction}>
+                      <button className="btn-ghost w-full">Sign out</button>
+                    </form>
+                  </>
+                ) : (
+                  <>
+                    <Link href="/signup" className="btn-primary">
+                      Get started
+                    </Link>
+                    <Link href="/login" className="btn-ghost">
+                      Login
+                    </Link>
+                  </>
+                )}
+              </div>
+            </nav>
+          </details>
+        </div>
       </div>
     </header>
   );
