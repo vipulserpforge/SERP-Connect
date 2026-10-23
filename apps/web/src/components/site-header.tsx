@@ -1,6 +1,6 @@
-import Image from "next/image";
 import Link from "next/link";
 import { signOutAction } from "@/app/actions";
+import { Logo } from "@/components/logo";
 import { getSessionUser } from "@/lib/server";
 
 /** Public header on every page. Shows Dashboard/Sign out when a valid session exists, otherwise Login/Sign up. */
@@ -16,7 +16,7 @@ export async function SiteHeader() {
     <header className="sticky top-0 z-20 border-b backdrop-blur" style={{ borderColor: "var(--line)", background: "rgba(7,17,15,0.75)" }}>
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-3.5">
         <Link href="/" aria-label="SERP Connect home">
-          <Image src="/logo-serp-connect.svg" alt="SERP Connect by SERP Forge" width={126} height={44} priority unoptimized />
+          <Logo size={36} />
         </Link>
         <nav className="flex items-center gap-1.5 text-sm sm:gap-3">
           <Link href="/mcp" className="muted rounded-lg px-3 py-2 hover:text-white">
