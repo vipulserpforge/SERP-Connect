@@ -126,7 +126,7 @@ export function stableStringify(value: unknown): string {
 }
 
 /** Bump when canonicalization or result shape changes, so older cached results are never served as current. */
-export const REPORT_RULES_VERSION = 2;
+export const REPORT_RULES_VERSION = 3;
 
 /**
  * Hash of everything that can change a report's content: the canonical request (dates, dimensions, metrics, filters,
@@ -253,7 +253,7 @@ export function canonicalizeGa4Query(q: WithResolvedDates<QueryGa4Input>): WithR
   return {
     ...q,
     propertyId: q.propertyId.trim(),
-    dimensionFilters: byJson(dedupe(q.dimensionFilters.map((f) => ({ ...f, value: f.value.trim() })))),
+    dimensionFilters: byJson(dedupe(q.dimensionFilters.map((f) => ({ ...f, ...(f.value !== undefined && { value: f.value.trim() }), ...(f.values && { values: [...new Set(f.values)].sort() }) })))),
     metricFilters: byJson(dedupe(q.metricFilters)),
   };
 }

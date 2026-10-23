@@ -8,6 +8,9 @@ import {
   isConnectorException,
   GetSupportedMetricsSchema,
   QueryGa4Schema,
+  GA4_PRESETS,
+  QueryGa4CohortSchema,
+  QueryGa4RealtimeSchema,
   QueryGscSchema,
   type AuthorizedQueryContext,
   type ReportWarning,
@@ -34,7 +37,7 @@ import {
   validateGscDateRange,
   type ResolvedDates,
 } from "@serp/query-planner";
-import { GA4_DIMENSIONS, GA4_METRICS, createGa4Adapter, type Ga4Adapter, type Ga4Query } from "@serp/provider-ga4";
+import { GA4_EARLIEST_START_DATE, GA4_DIMENSIONS, GA4_METRICS, GA4_PRESET_DEFS, GA4_REALTIME_DIMENSIONS, GA4_REALTIME_METRICS, applyGa4Preset, createGa4Adapter, formatGa4Value, planCohorts, todayInZone, type Ga4Adapter, type Ga4CohortQuery, type Ga4Query, type Ga4RealtimeQuery } from "@serp/provider-ga4";
 import { BING_CAPABILITIES, BING_DATE_SEMANTICS, MockBingApiClient, createBingAdapter, enabledBingCapabilities, type BingQuery } from "@serp/provider-bing";
 import {
   CLARITY_DAILY_REQUEST_LIMIT,
@@ -232,10 +235,62 @@ export class ReportService {
     const input = parseInput(QueryGa4Schema, rawInput);
     const auth = await authorizeProperty(this.deps.repo, principal, "ga4", input.propertyId);
     const period = resolveReportDates("ga4", input, { timeZone: auth.property.timezone, now: this.now() });
-    const { lastDays: _l, ...rest } = input;
-    const query: Ga4Query = canonicalizeGa4Query({ ...rest, startDate: period.startDate, endDate: period.endDate, limit: Math.min(input.limit, this.deps.env.MAX_REPORT_ROWS_HARD_LIMIT) });
+    // `fresh`, `compareTo` and `preset` steer this call only; the preset is expanded into dimensions and metrics, so the cache identity is the resulting query.
+    const { lastDays: _l, fresh, compareTo, preset, ...plain } = input;
+    const rest = applyGa4Preset(preset, plain);
+    const query: Ga4Query = canonicalizeGa4Query({ ...rest, startDate: period.startDate, endDate: period.endDate, limit: Math.min(rest.limit, this.deps.env.MAX_REPORT_ROWS_HARD_LIMIT) });
     const { warnings } = validateGa4DateRange(query.startDate, query.endDate, auth.property.timezone, this.now());
-    return this.runReport(this.deps.ga4, query, auth, principal, requestId, period, warnings);
+    const current = await this.runReport(this.deps.ga4, query, auth, principal, requestId, period, warnings, fresh === true);
+    const def = preset ? GA4_PRESET_DEFS[preset] : null;
+    const labelled: NormalizedReportResult = def
+      ? { ...current, summary: `${def.label}. ${current.summary ?? ""}`.trim(), warnings: def.note ? [...current.warnings, { code: "PRESET_NOTE", message: def.note }] : current.warnings }
+      : current;
+    const compared = compareTo ? await this.withGa4Comparison(labelled, query, compareTo, auth, principal, requestId, fresh === true) : labelled;
+    return def?.special === "funnel" ? asFunnel(compared, query.metrics) : compared;
+  }
+
+  /** Fetches the earlier range with the same fields and filters and adds previous/change columns. A failed comparison never hides the current data. */
+  private async withGa4Comparison(current: NormalizedReportResult, query: Ga4Query, compareTo: "previous_period" | "previous_year", auth: Auth, principal: Principal, requestId: string, fresh: boolean): Promise<NormalizedReportResult> {
+    const { startDate, endDate } = previousRange(query.startDate, query.endDate, compareTo);
+    const label = compareTo === "previous_year" ? "the same dates a year earlier" : "the previous period";
+    const skip = (message: string): NormalizedReportResult => ({ ...current, warnings: [...current.warnings, { code: "COMPARISON_UNAVAILABLE", message }] });
+    let prev: NormalizedReportResult;
+    try {
+      validateGa4DateRange(startDate, endDate, auth.property.timezone, this.now());
+      if (startDate < GA4_EARLIEST_START_DATE) throw new ConnectorException("DATE_RANGE_UNSUPPORTED", "before GA4 history", { provider: "ga4" });
+      const prevQuery: Ga4Query = { ...query, startDate, endDate, offset: 0, limit: this.deps.env.MAX_REPORT_ROWS_HARD_LIMIT };
+      prev = await this.runReport(this.deps.ga4, prevQuery, auth, principal, requestId, null, [], fresh);
+    } catch (err) {
+      if (isConnectorException(err) && err.code === "DATE_RANGE_UNSUPPORTED") return skip(`The comparison range ${startDate} to ${endDate} is before GA4 has any data, so no comparison is shown.`);
+      return skip(`The comparison with ${label} could not be fetched (${isConnectorException(err) ? err.code : "error"}); the current data is shown without it.`);
+    }
+    return mergeGa4Comparison(current, prev, query.dimensions, query.metrics, { label, startDate, endDate });
+  }
+
+  /** Retention by cohort: cohorts are planned from the property's own calendar, so the cache key (which holds their dates) moves with the days. */
+  async queryGa4Cohort(principal: Principal, rawInput: unknown, requestId: string): Promise<NormalizedReportResult> {
+    this.assertEnabled("ga4");
+    const input = parseInput(QueryGa4CohortSchema, rawInput);
+    const auth = await authorizeProperty(this.deps.repo, principal, "ga4", input.propertyId);
+    const ga4 = this.deps.ga4;
+    if (!ga4.queryCohort) throw new ConnectorException("PROVIDER_CAPABILITY_UNAVAILABLE", "Cohort reports are not available for this connection.", { provider: "ga4" });
+    const ranges = planCohorts(input.granularity, input.cohorts, todayInZone(this.now(), auth.property.timezone));
+    const adapter: ReportAdapter<Ga4CohortQuery> = { provider: "ga4", mock: ga4.mock, query: (q, ctx) => ga4.queryCohort!(q, ctx) };
+    const query: Ga4CohortQuery = { ...input, ranges, startDate: ranges[0]!.startDate, endDate: ranges.at(-1)!.endDate };
+    const period = { resolvedFrom: "explicit" as const, timeZone: auth.property.timezone ?? "UTC" };
+    return this.runReport(adapter, query, auth, principal, requestId, period, []);
+  }
+
+  /** Who is on the site now. Never served from the saved-result cache: a snapshot minutes old is not "realtime". */
+  async queryGa4Realtime(principal: Principal, rawInput: unknown, requestId: string): Promise<NormalizedReportResult> {
+    this.assertEnabled("ga4");
+    const input = parseInput(QueryGa4RealtimeSchema, rawInput);
+    const auth = await authorizeProperty(this.deps.repo, principal, "ga4", input.propertyId);
+    const ga4 = this.deps.ga4;
+    if (!ga4.queryRealtime) throw new ConnectorException("PROVIDER_CAPABILITY_UNAVAILABLE", "Realtime reports are not available for this connection.", { provider: "ga4" });
+    const adapter: ReportAdapter<Ga4RealtimeQuery> = { provider: "ga4", mock: ga4.mock, query: (q, ctx) => ga4.queryRealtime!(q, ctx) };
+    const query: Ga4RealtimeQuery = { ...input, limit: Math.min(input.limit, this.deps.env.MAX_REPORT_ROWS_HARD_LIMIT), startDate: null, endDate: null };
+    return this.runReport(adapter, query, auth, principal, requestId, null, [], true);
   }
 
   /**
@@ -354,7 +409,7 @@ export class ReportService {
         return { provider, dimensions: [...GSC_DIMENSIONS], metrics: [...GSC_METRICS], limits: { maxRows: this.deps.env.MAX_REPORT_ROWS_HARD_LIMIT, retentionMonths: 16, dateSemantics: "Pacific Time" }, notes: ["Results may omit rows due to Google's internal limits.", "The latest 1-2 days can be incomplete; set dataState to \"all\" to include fresh, still-changing days.", "Grouping by query omits anonymized queries.", "searchAppearance must be queried on its own.", "Sorting by anything other than clicks is applied to up to 25,000 rows fetched from Google.", "Use offset to page past 1,000 rows, compareTo for previous-period or previous-year change, and fresh=true to skip the cache.", "totals covers the whole range for the same filters and can exceed the sum of rows."] };
       case "ga4": {
         const limits = { maxRows: this.deps.env.MAX_REPORT_ROWS_HARD_LIMIT, maxDimensions: 9, maxMetrics: 10, dateSemantics: "Property reporting time zone", earliestStartDate: "2015-08-14" };
-        const notes = ["Not every dimension can be combined with every metric; incompatible requests are rejected with the fields to remove.", "User counts are distinct per row and are not additive.", "Recent days can take 24-48 hours to finish processing."];
+        const notes = ["Not every dimension can be combined with every metric; incompatible requests are rejected with the fields to remove.", "User counts are distinct per row and are not additive.", "Recent days can take 24-48 hours to finish processing.", `Use preset (${GA4_PRESETS.join(", ")}) for ready-made reports, filterMode "or", exclude, FULL_REGEXP/PARTIAL_REGEXP and IN_LIST for flexible filters, query_ga4_cohort for retention by cohort, compareTo for previous-period or previous-year change, offset to page, and fresh=true to skip the cache.`, "totals covers every matching row, not just the returned page, and counts people correctly (row sums of users over-count).", 'GA4 labels missing values "(not set)" and groups tiny values into "(other)"; both are real traffic. Known bots are excluded by Google, but internal-traffic filters exist only if configured in the property.', "Dates follow each property's own time zone, which can differ from Search Console (Pacific Time) and Clarity (UTC) by up to a day.", `query_ga4_realtime covers the last 30 minutes only. Realtime dimensions: ${GA4_REALTIME_DIMENSIONS.join(", ")}. Realtime metrics: ${GA4_REALTIME_METRICS.join(", ")}.`];
         if (!propertyId) {
           return { provider, dimensions: [...GA4_DIMENSIONS], metrics: [...GA4_METRICS], limits, notes: [...notes, "Starter list. Pass propertyId to get the exact fields (including custom ones) for a property."] };
         }
@@ -674,6 +729,88 @@ export function mergeGscComparison(current: NormalizedReportResult, prev: Normal
     const dir = (n: number | null) => (n === null ? "n/a" : `${n > 0 ? "+" : ""}${n}%`);
     out.summary = `${current.summary ?? ""} Compared with ${info.label} (${info.startDate} to ${info.endDate}): clicks ${dir(change.clicksPct)}, impressions ${dir(change.impressionsPct)}, average position ${change.position < 0 ? "improved" : change.position > 0 ? "worsened" : "unchanged"} by ${Math.abs(change.position)}.`.trim();
     out.nextStep = "Sort by clicksChange to find the biggest winners and losers.";
+  } else {
+    warnings.push({ code: "COMPARISON_TOTALS_MISSING", message: "Totals were not available for one of the two ranges, so the overall change is not shown." });
+  }
+  return out;
+}
+
+/** The purchase journey as ordered steps with the share that continues to the next step and from the first step. */
+function asFunnel(r: NormalizedReportResult, metrics: readonly string[]): NormalizedReportResult {
+  const row = r.rows[0];
+  if (!row) return r;
+  const labels = (r.providerMetadata?.fieldLabels ?? {}) as Record<string, string>;
+  const steps = metrics.map((m) => ({ step: labels[m] ?? m, count: typeof row[m] === "number" ? (row[m] as number) : 0 }));
+  const rows = steps.map((s, i) => ({
+    step: s.step,
+    count: s.count,
+    fromPreviousPct: i === 0 ? null : steps[i - 1]!.count > 0 ? Math.round((s.count / steps[i - 1]!.count) * 1000) / 10 : null,
+    fromFirstPct: i === 0 ? null : steps[0]!.count > 0 ? Math.round((s.count / steps[0]!.count) * 1000) / 10 : null,
+  }));
+  let worst = -1;
+  rows.forEach((x, i) => {
+    if (i > 0 && x.fromPreviousPct !== null && (worst < 0 || x.fromPreviousPct < rows[worst]!.fromPreviousPct!)) worst = i;
+  });
+  const biggest = worst > 0 ? ` The biggest drop is before "${rows[worst]!.step}" (${rows[worst]!.fromPreviousPct}% continue).` : "";
+  const first = rows[0]!, last = rows.at(-1)!;
+  return {
+    ...r,
+    rows,
+    rowCountReturned: rows.length,
+    report: { ...r.report, dimensions: ["step"], metrics: ["count", "fromPreviousPct", "fromFirstPct"] },
+    summary: `Purchase journey: ${first.count.toLocaleString("en-US")} ${first.step.toLowerCase()} led to ${last.count.toLocaleString("en-US")} ${last.step.toLowerCase()}.${biggest}${r.comparison ? ` ${r.summary?.match(/Compared with.*$/)?.[0] ?? ""}` : ""}`.trim(),
+    nextStep: worst > 0 ? `Look at what happens before "${rows[worst]!.step}": filter by device or channel to see who drops out.` : r.nextStep,
+  };
+}
+
+const cap = (n: string) => n.charAt(0).toUpperCase() + n.slice(1).replace(/[^A-Za-z0-9]/g, "");
+
+/**
+ * Adds previous-range columns (previousX, xChange, xChangePct) to each current row, matched by dimension values, and the totals' change.
+ * A row with no match in the earlier range gets empty previous values, not zeros: it is new, or fell outside the rows fetched.
+ */
+export function mergeGa4Comparison(current: NormalizedReportResult, prev: NormalizedReportResult, dimensions: readonly string[], metrics: readonly string[], info: { label: string; startDate: string; endDate: string }): NormalizedReportResult {
+  const warnings = [...current.warnings];
+  const keyOf = (r: Record<string, unknown>) => dimensions.map((d) => String(r[d])).join("\u0000");
+  const matchable = dimensions.length > 0 && !dimensions.includes("date");
+  const prevByKey = new Map(prev.rows.map((r) => [keyOf(r), r]));
+  let unmatched = 0;
+  const rows = current.rows.map((r) => {
+    if (!matchable) return r;
+    const p = prevByKey.get(keyOf(r));
+    const extra: Record<string, number | null> = {};
+    if (!p) unmatched++;
+    for (const m of metrics) {
+      const now = typeof r[m] === "number" ? (r[m] as number) : null;
+      const before = p && typeof p[m] === "number" ? (p[m] as number) : null;
+      extra[`previous${cap(m)}`] = before;
+      extra[`${m}Change`] = now !== null && before !== null ? r4(now - before) : null;
+      extra[`${m}ChangePct`] = now !== null && before !== null ? pct(now, before) : null;
+    }
+    return { ...r, ...extra };
+  });
+  if (!matchable) warnings.push({ code: "COMPARISON_TOTALS_ONLY", message: "Rows are not matched one-to-one with the earlier range (grouped by date, or no dimension), so the comparison is shown for the totals only." });
+  if (unmatched > 0) warnings.push({ code: "COMPARISON_ROWS_NOT_FOUND", message: `${unmatched} row(s) had no matching row in ${info.label} (new, or outside the rows fetched), so their previous values are empty, not zero.` });
+  if (prev.rowCountReportedByProvider !== null && prev.rowCountReportedByProvider > prev.rowCountReturned) {
+    warnings.push({ code: "COMPARISON_ROWS_TRUNCATED", message: `The earlier range has ${prev.rowCountReportedByProvider} rows but only the top ${prev.rowCountReturned} were compared; rows further down may show empty previous values.` });
+  }
+
+  const out: NormalizedReportResult = { ...current, rows, warnings };
+  if (current.totals && prev.totals) {
+    const change: Record<string, number | null> = {};
+    const parts: string[] = [];
+    const labels = (current.providerMetadata?.fieldLabels ?? {}) as Record<string, string>;
+    const types = (current.providerMetadata?.metricTypes ?? {}) as Record<string, string>;
+    for (const m of metrics) {
+      const a = current.totals[m] ?? null, b = prev.totals[m] ?? null;
+      change[m] = a !== null && b !== null ? r4(a - b) : null;
+      change[`${m}Pct`] = a !== null && b !== null ? pct(a, b) : null;
+      const p = change[`${m}Pct`];
+      parts.push(`${labels[m] ?? m} ${p === null || p === undefined ? "n/a" : `${p > 0 ? "+" : ""}${p}%`} (${formatGa4Value(m, types[m], b)} before)`);
+    }
+    out.comparison = { label: info.label, startDate: info.startDate, endDate: info.endDate, totals: { ...prev.totals }, change };
+    out.summary = `${current.summary ?? ""} Compared with ${info.label} (${info.startDate} to ${info.endDate}): ${parts.join(", ")}.`.trim();
+    out.nextStep = matchable ? `Sort by ${metrics[0]}Change to find the biggest winners and losers.` : "Filter to one page or channel to see what drove the change.";
   } else {
     warnings.push({ code: "COMPARISON_TOTALS_MISSING", message: "Totals were not available for one of the two ranges, so the overall change is not shown." });
   }

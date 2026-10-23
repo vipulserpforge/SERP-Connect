@@ -46,14 +46,25 @@ export interface Ga4Compatibility {
 
 export type Ga4Filter =
   | { filter: { fieldName: string; stringFilter: { matchType: string; value: string; caseSensitive: boolean } } }
+  | { filter: { fieldName: string; inListFilter: { values: string[]; caseSensitive: boolean } } }
   | { filter: { fieldName: string; numericFilter: { operation: string; value: { doubleValue: number } } } };
+/** A filter tree: one leaf, a group joined by AND or OR, or the negation of another expression. */
 export interface Ga4FilterExpression {
-  andGroup?: { expressions: Ga4Filter[] };
+  andGroup?: { expressions: Ga4FilterExpression[] };
+  orGroup?: { expressions: Ga4FilterExpression[] };
+  notExpression?: Ga4FilterExpression;
   filter?: Ga4Filter["filter"];
 }
 
+export interface Ga4CohortSpec {
+  cohorts: Array<{ name: string; dimension: "firstSessionDate"; dateRange: { startDate: string; endDate: string } }>;
+  cohortsRange: { granularity: "DAILY" | "WEEKLY" | "MONTHLY"; startOffset: number; endOffset: number };
+}
+
 export interface Ga4RunReportRequest {
-  dateRanges: Array<{ startDate: string; endDate: string }>;
+  /** Absent on cohort reports, where the cohorts carry their own dates. */
+  dateRanges?: Array<{ startDate: string; endDate: string }>;
+  cohortSpec?: Ga4CohortSpec;
   dimensions: Array<{ name: string }>;
   metrics: Array<{ name: string }>;
   dimensionFilter?: Ga4FilterExpression;
@@ -61,6 +72,19 @@ export interface Ga4RunReportRequest {
   orderBys: Array<{ desc: boolean; metric?: { metricName: string }; dimension?: { dimensionName: string; orderType: "ALPHANUMERIC" } }>;
   limit: string;
   offset: string;
+  /** TOTAL makes Google return whole-range totals for the same filters, not just for the returned page. */
+  metricAggregations?: ["TOTAL"];
+  returnPropertyQuota: true;
+}
+
+export interface Ga4RealtimeRequest {
+  dimensions: Array<{ name: string }>;
+  metrics: Array<{ name: string }>;
+  dimensionFilter?: Ga4FilterExpression;
+  minuteRanges: Array<{ startMinutesAgo: number; endMinutesAgo: number }>;
+  orderBys: Array<{ desc: boolean; metric?: { metricName: string }; dimension?: { dimensionName: string; orderType: "ALPHANUMERIC" } }>;
+  limit: string;
+  metricAggregations: ["TOTAL"];
   returnPropertyQuota: true;
 }
 
@@ -80,6 +104,8 @@ export interface Ga4RunReportResponse {
   sampling: Array<{ samplesReadCount: string; samplingSpaceSize: string }>;
   restrictedMetrics: string[];
   hasEmptyReason: boolean;
+  /** Whole-range metric totals in the requested metric order, when Google returned them. */
+  totals: string[] | null;
   quota: Record<string, Ga4QuotaStatus>;
 }
 
@@ -91,6 +117,7 @@ export interface Ga4ApiClient {
   getMetadata(accessToken: string, propertyId: string, signal?: AbortSignal): Promise<Ga4Metadata>;
   checkCompatibility(accessToken: string, propertyId: string, fields: { dimensions: string[]; metrics: string[] }, signal?: AbortSignal): Promise<Ga4Compatibility>;
   runReport(accessToken: string, propertyId: string, request: Ga4RunReportRequest, signal?: AbortSignal): Promise<Ga4RunReportResponse>;
+  runRealtimeReport(accessToken: string, propertyId: string, request: Ga4RealtimeRequest, signal?: AbortSignal): Promise<Ga4RunReportResponse>;
 }
 
 // ---- response validation -------------------------------------------------------------
@@ -144,6 +171,7 @@ const reportSchema = z.object({
     })
     .passthrough()
     .optional(),
+  totals: z.array(z.object({ metricValues: z.array(z.object({ value: z.string().max(64).optional() })).optional() })).optional(),
   propertyQuota: z.record(z.string(), quotaEntry).optional(),
 });
 
@@ -254,7 +282,16 @@ export class HttpGa4ApiClient implements Ga4ApiClient {
 
   async runReport(accessToken: string, propertyId: string, request: Ga4RunReportRequest, signal?: AbortSignal): Promise<Ga4RunReportResponse> {
     this.assertId(propertyId);
-    const parsed = reportSchema.safeParse(await this.rest.call("POST", `${this.data}/properties/${propertyId}:runReport`, accessToken, request, signal));
+    return this.parseReport(await this.rest.call("POST", `${this.data}/properties/${propertyId}:runReport`, accessToken, request, signal), request);
+  }
+
+  async runRealtimeReport(accessToken: string, propertyId: string, request: Ga4RealtimeRequest, signal?: AbortSignal): Promise<Ga4RunReportResponse> {
+    this.assertId(propertyId);
+    return this.parseReport(await this.rest.call("POST", `${this.data}/properties/${propertyId}:runRealtimeReport`, accessToken, request, signal), request);
+  }
+
+  private parseReport(raw: unknown, request: { dimensions: unknown[]; metrics: unknown[] }): Ga4RunReportResponse {
+    const parsed = reportSchema.safeParse(raw);
     if (!parsed.success) throw bad();
     const d = parsed.data;
     const dimNames = request.dimensions.length;
@@ -265,6 +302,7 @@ export class HttpGa4ApiClient implements Ga4ApiClient {
     }));
     // Every row must carry exactly the requested columns, otherwise values could be mislabeled.
     if (rows.some((r) => r.dimensions.length !== dimNames || r.metrics.length !== metNames)) throw bad();
+    const totalRow = d.totals?.[0]?.metricValues?.map((v) => v.value ?? "");
     const quota: Record<string, Ga4QuotaStatus> = {};
     for (const key of QUOTA_KEYS) {
       const q = d.propertyQuota?.[key];
@@ -282,6 +320,7 @@ export class HttpGa4ApiClient implements Ga4ApiClient {
       sampling: (d.metadata?.samplingMetadatas ?? []).map((s) => ({ samplesReadCount: s.samplesReadCount ?? "", samplingSpaceSize: s.samplingSpaceSize ?? "" })),
       restrictedMetrics: (d.metadata?.schemaRestrictionResponse?.activeMetricRestrictions ?? []).flatMap((m) => (m.metricName ? [m.metricName] : [])),
       hasEmptyReason: Boolean(d.metadata?.emptyReason),
+      totals: totalRow && totalRow.length === metNames ? totalRow : null,
       quota,
     };
   }

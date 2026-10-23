@@ -26,3 +26,4 @@ export function createGa4Adapter(
   }
   return new GoogleGa4Adapter({ client: live.client ?? new HttpGa4ApiClient(), getAccessToken: live.getAccessToken, ...(live.onAuthRejected && { onAuthRejected: live.onAuthRejected }) });
 }
+export * from "./presets.js";

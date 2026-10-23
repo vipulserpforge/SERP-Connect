@@ -8,6 +8,7 @@ import {
   type Ga4FilterExpression,
   type Ga4Metadata,
   type Ga4PropertyDetails,
+  type Ga4RealtimeRequest,
   type Ga4RunReportRequest,
   type Ga4RunReportResponse,
 } from "./api-client.js";
@@ -36,6 +37,14 @@ const VALUES: Record<string, string[]> = {
   language: ["en-us", "en-gb", "hi-in", "de-de"],
   itemName: ["Widget", "Gadget", "Gizmo", "Doohickey", "Thingamajig"],
   itemCategory: ["Tools", "Toys", "Home"],
+  itemBrand: ["Acme", "Globex", "Initech"],
+  itemId: ["SKU-1", "SKU-2", "SKU-3", "SKU-4", "SKU-5"],
+  itemPromotionName: ["Summer sale", "Black Friday", "Newsletter 10%"],
+  sessionSourceMedium: ["google / organic", "(direct) / (none)", "bing / organic", "facebook / referral", "newsletter / email", "google / cpc"],
+  sessionCampaignName: ["(organic)", "(direct)", "summer_sale", "brand_search", "(not set)"],
+  firstUserDefaultChannelGroup: ["Organic Search", "Direct", "Referral", "Paid Search", "Organic Social", "Email"],
+  userAgeBracket: ["18-24", "25-34", "35-44", "45-54", "55-64", "unknown"],
+  userGender: ["female", "male", "unknown"],
   "customEvent:signup_plan": ["free", "pro", "enterprise"],
 };
 
@@ -59,6 +68,14 @@ const DIMENSIONS = [
   dim("language", "Language", "Demographics", "user"),
   dim("itemName", "Item name", "Ecommerce", "item"),
   dim("itemCategory", "Item category", "Ecommerce", "item"),
+  dim("itemBrand", "Item brand", "Ecommerce", "item"),
+  dim("itemId", "Item ID", "Ecommerce", "item"),
+  dim("itemPromotionName", "Item promotion name", "Ecommerce", "item"),
+  dim("sessionSourceMedium", "Session source / medium", "Traffic source", "session"),
+  dim("sessionCampaignName", "Session campaign", "Traffic source", "session"),
+  dim("firstUserDefaultChannelGroup", "First user default channel group", "Traffic source", "user"),
+  dim("userAgeBracket", "Age", "Demographics", "user"),
+  dim("userGender", "Gender", "Demographics", "user"),
 ];
 const CUSTOM_DIM = dim("customEvent:signup_plan", "Signup plan (custom)", "Custom", "event", true);
 
@@ -85,6 +102,21 @@ const METRICS = [
   met("purchaseRevenue", "Purchase revenue", "Revenue", "TYPE_CURRENCY", "any"),
   met("itemsViewed", "Items viewed", "Ecommerce", "TYPE_INTEGER", "item"),
   met("itemRevenue", "Item revenue", "Ecommerce", "TYPE_CURRENCY", "item"),
+  met("ecommercePurchases", "Ecommerce purchases", "Ecommerce", "TYPE_INTEGER", "any"),
+  met("addToCarts", "Add to carts", "Ecommerce", "TYPE_INTEGER", "any"),
+  met("checkouts", "Checkouts", "Ecommerce", "TYPE_INTEGER", "any"),
+  met("itemsAddedToCart", "Items added to cart", "Ecommerce", "TYPE_INTEGER", "item"),
+  met("itemsPurchased", "Items purchased", "Ecommerce", "TYPE_INTEGER", "item"),
+  met("itemsViewedInPromotion", "Items viewed in promotion", "Ecommerce", "TYPE_INTEGER", "item"),
+  met("itemsClickedInPromotion", "Items clicked in promotion", "Ecommerce", "TYPE_INTEGER", "item"),
+  met("averagePurchaseRevenue", "Average purchase revenue", "Revenue", "TYPE_CURRENCY", "any"),
+  met("averageRevenuePerUser", "ARPU", "Revenue", "TYPE_CURRENCY", "any"),
+  met("dauPerMau", "DAU / MAU", "User", "TYPE_FLOAT", "any"),
+  met("dauPerWau", "DAU / WAU", "User", "TYPE_FLOAT", "any"),
+  met("wauPerMau", "WAU / MAU", "User", "TYPE_FLOAT", "any"),
+  met("active1DayUsers", "1-day active users", "User", "TYPE_INTEGER", "any"),
+  met("active7DayUsers", "7-day active users", "User", "TYPE_INTEGER", "any"),
+  met("active28DayUsers", "28-day active users", "User", "TYPE_INTEGER", "any"),
 ];
 const CUSTOM_METRIC = met("customEvent:signup_count", "Signups (custom)", "Custom", "TYPE_INTEGER", "any");
 const CUSTOM_PROPERTY = "123456789";
@@ -136,8 +168,13 @@ interface Totals {
   itemsViewed: number;
   itemRevenue: number;
   signups: number;
+  carts: number;
+  checkouts: number;
+  bought: number;
+  promoViews: number;
+  promoClicks: number;
 }
-const zero = (): Totals => ({ activeUsers: 0, totalUsers: 0, newUsers: 0, sessions: 0, engagedSessions: 0, views: 0, events: 0, keyEvents: 0, duration: 0, transactions: 0, revenue: 0, itemsViewed: 0, itemRevenue: 0, signups: 0 });
+const zero = (): Totals => ({ activeUsers: 0, totalUsers: 0, newUsers: 0, sessions: 0, engagedSessions: 0, views: 0, events: 0, keyEvents: 0, duration: 0, transactions: 0, revenue: 0, itemsViewed: 0, itemRevenue: 0, signups: 0, carts: 0, checkouts: 0, bought: 0, promoViews: 0, promoClicks: 0 });
 
 /**
  * Fixture-backed stand-in for the Analytics Admin and Data APIs. It enforces property access, the
@@ -223,7 +260,7 @@ export class MockGa4ApiClient implements Ga4ApiClient {
     const metMeta = fields.metrics.map((n) => mets.find((m) => m.apiName === n)).filter((m): m is NonNullable<typeof m> => Boolean(m));
     const bad = (d: (typeof dimMeta)[number], m: (typeof metMeta)[number]) =>
       (d.scope === "item") !== (m.scope === "item") && m.scope !== "any" ? true
-      : d.scope === "item" && m.scope === "any" && !["itemName", "itemCategory"].includes(d.apiName) ? true
+      : d.scope === "item" && m.scope === "any" && !["itemName", "itemCategory", "itemBrand", "itemId", "itemPromotionName"].includes(d.apiName) ? true
       : d.custom && SESSION_METRICS.has(m.apiName); // event-scoped custom dimensions cannot be used with session metrics
     const incompatibleDimensions = dimMeta.filter((d) => metMeta.some((m) => bad(d, m))).map((d) => d.apiName);
     const incompatibleMetrics = metMeta.filter((m) => dimMeta.some((d) => bad(d, m))).map((m) => m.apiName);
@@ -233,11 +270,13 @@ export class MockGa4ApiClient implements Ga4ApiClient {
   async runReport(accessToken: string, propertyId: string, req: Ga4RunReportRequest): Promise<Ga4RunReportResponse> {
     this.enter("runReport", accessToken, propertyId, req);
     this.requireAccess(propertyId);
+    if (req.cohortSpec) return this.cohortReport(propertyId, req);
     const { dims, mets } = this.fieldsFor(propertyId);
     const dimNames = req.dimensions.map((d) => d.name);
     const metNames = req.metrics.map((m) => m.name);
     if (dimNames.some((n) => !dims.some((d) => d.apiName === n)) || metNames.some((n) => !mets.some((m) => m.apiName === n))) throw new Ga4ApiError("invalid_request", 400);
-    const range = req.dateRanges[0]!;
+    const range = req.dateRanges?.[0];
+    if (!range) throw new Ga4ApiError("invalid_request", 400);
     if (range.startDate > range.endDate || range.startDate < "2015-08-14") throw new Ga4ApiError("invalid_request", 400);
 
     const tz = this.timeZones[propertyId] ?? "UTC";
@@ -272,6 +311,11 @@ export class MockGa4ApiClient implements Ga4ApiClient {
         t.itemsViewed = Math.round(sessions * 1.2);
         t.itemRevenue = t.revenue;
         t.signups = Math.round(t.keyEvents * 0.7);
+        t.carts = Math.round(t.itemsViewed * 0.3);
+        t.checkouts = Math.round(t.carts * 0.5);
+        t.bought = Math.round(t.checkouts * 0.6);
+        t.promoViews = Math.round(sessions * 2);
+        t.promoClicks = Math.round(sessions * 0.4);
         const keys = dimNames.map((n) => (n === "date" ? date.replaceAll("-", "") : attr(n)));
         const id = keys.join("\u0000");
         const g = groups.get(id) ?? { keys, t: zero() };
@@ -305,11 +349,26 @@ export class MockGa4ApiClient implements Ga4ApiClient {
         case "itemsViewed": return t.itemsViewed;
         case "itemRevenue": return t.itemRevenue;
         case "customEvent:signup_count": return t.signups;
+        case "ecommercePurchases": return t.bought;
+        case "addToCarts":
+        case "itemsAddedToCart": return t.carts;
+        case "checkouts": return t.checkouts;
+        case "itemsPurchased": return t.bought;
+        case "itemsViewedInPromotion": return t.promoViews;
+        case "itemsClickedInPromotion": return t.promoClicks;
+        case "averagePurchaseRevenue": return per(t.revenue, t.transactions);
+        case "averageRevenuePerUser": return per(t.revenue, t.activeUsers);
+        case "dauPerMau": return 0.18;
+        case "dauPerWau": return 0.35;
+        case "wauPerMau": return 0.52;
+        case "active1DayUsers": return Math.round(t.activeUsers / 28);
+        case "active7DayUsers": return Math.round(t.activeUsers / 4);
+        case "active28DayUsers": return t.activeUsers;
         default: return 0;
       }
     };
 
-    let rows = [...groups.values()].map((g) => ({ keys: g.keys, metrics: metNames.map((n) => value(g.t, n)) }));
+    let rows = [...groups.values()].map((g) => ({ keys: g.keys, t: g.t, metrics: metNames.map((n) => value(g.t, n)) }));
     rows = rows.filter((r) => matchesMetricFilter(req.metricFilter, (n) => r.metrics[metNames.indexOf(n)] ?? 0));
     const order = req.orderBys[0];
     if (order) {
@@ -319,6 +378,10 @@ export class MockGa4ApiClient implements Ga4ApiClient {
       rows.sort((a, b) => sign * (mi >= 0 ? a.metrics[mi]! - b.metrics[mi]! : (a.keys[di] ?? "").localeCompare(b.keys[di] ?? "")) || a.keys.join().localeCompare(b.keys.join()));
     }
     const total = rows.length;
+    // Like Google, totals cover every matching row, not only the returned page; rates are recomputed, not summed.
+    const grand = zero();
+    for (const r of rows) for (const k of Object.keys(grand) as Array<keyof Totals>) grand[k] += r.t[k];
+    const totals = req.metricAggregations?.includes("TOTAL") && total > 0 ? metNames.map((n) => String(Number(value(grand, n).toFixed(6)))) : null;
     const offset = Number(req.offset);
     rows = rows.slice(offset, offset + Number(req.limit));
 
@@ -335,6 +398,7 @@ export class MockGa4ApiClient implements Ga4ApiClient {
       sampling: [],
       restrictedMetrics: [],
       hasEmptyReason: total === 0,
+      totals,
       quota: {
         tokensPerDay: { consumed: this.tokensUsed, remaining: 200_000 - this.tokensUsed },
         tokensPerHour: { consumed: this.tokensUsed, remaining: 40_000 - this.tokensUsed },
@@ -343,9 +407,102 @@ export class MockGa4ApiClient implements Ga4ApiClient {
     };
     return { ...response, ...this.override };
   }
+
+  /** Cohort retention fixture: each cohort shrinks period by period, deterministically. */
+  private cohortReport(propertyId: string, req: Ga4RunReportRequest): Ga4RunReportResponse {
+    const spec = req.cohortSpec!;
+    const nth = req.dimensions[1]?.name ?? "cohortNthWeek";
+    const metric = req.metrics[0]!.name;
+    if (!["cohortActiveUsers", "cohortTotalUsers"].includes(metric) || req.dimensions[0]?.name !== "cohort" || !/^cohortNth(Day|Week|Month)$/.test(nth)) throw new Ga4ApiError("invalid_request", 400);
+    const rows: Array<{ dimensions: string[]; metrics: string[] }> = [];
+    for (const c of spec.cohorts) {
+      if (!matchesDimensionFilter(req.dimensionFilter, () => "")) continue;
+      const size = 200 + Math.floor(hash(`c|${propertyId}|${c.name}`) * 800);
+      for (let n = spec.cohortsRange.startOffset; n <= spec.cohortsRange.endOffset; n++) {
+        const decay = n === 0 ? 1 : 0.55 ** n * (0.8 + hash(`d|${c.name}|${n}`) * 0.4);
+        rows.push({ dimensions: [c.name, String(n).padStart(4, "0")], metrics: [String(metric === "cohortTotalUsers" ? size : Math.round(size * decay))] });
+      }
+    }
+    return {
+      dimensionHeaders: ["cohort", nth],
+      metricHeaders: [{ name: metric, type: "TYPE_INTEGER" }],
+      rows,
+      rowCount: rows.length,
+      timeZone: this.timeZones[propertyId] ?? "UTC",
+      currencyCode: "USD",
+      subjectToThresholding: false,
+      dataLossFromOtherRow: false,
+      sampling: [],
+      restrictedMetrics: [],
+      hasEmptyReason: rows.length === 0,
+      totals: null,
+      quota: {},
+      ...this.override,
+    };
+  }
+
+  async runRealtimeReport(accessToken: string, propertyId: string, req: Ga4RealtimeRequest): Promise<Ga4RunReportResponse> {
+    this.enter("runRealtimeReport", accessToken, propertyId, req);
+    this.requireAccess(propertyId);
+    const dimNames = req.dimensions.map((d) => d.name);
+    const metNames = req.metrics.map((m) => m.name);
+    if (dimNames.some((n) => !REALTIME_DIMS.includes(n)) || metNames.some((n) => !REALTIME_METS.includes(n))) throw new Ga4ApiError("invalid_request", 400);
+    const window = (req.minuteRanges[0]?.startMinutesAgo ?? 29) + 1;
+    const nowMs = this.now().getTime();
+    const bucket = Math.floor(nowMs / 60_000);
+    const groups = new Map<string, { keys: string[]; users: number; views: number; events: number; keyEvents: number }>();
+    for (let f = 0; f < 40; f++) {
+      const attr = (n: string): string =>
+        n === "minutesAgo" ? String(f % window).padStart(2, "0")
+        : n === "unifiedScreenName" ? pick("pageTitle", f, propertyId)
+        : VALUES[n] ? pick(n, f, propertyId)
+        : "(not set)";
+      if (!matchesDimensionFilter(req.dimensionFilter, attr)) continue;
+      const seed = hash(`rt|${propertyId}|${f}|${bucket}`);
+      const users = 1 + Math.floor(seed * 5);
+      const keys = dimNames.map(attr);
+      const id = keys.join("\u0000");
+      const g = groups.get(id) ?? { keys, users: 0, views: 0, events: 0, keyEvents: 0 };
+      g.users += users;
+      g.views += users * 2;
+      g.events += users * 7;
+      g.keyEvents += seed > 0.8 ? 1 : 0;
+      groups.set(id, g);
+    }
+    const val = (g: { users: number; views: number; events: number; keyEvents: number }, n: string) => (n === "activeUsers" ? g.users : n === "screenPageViews" ? g.views : n === "eventCount" ? g.events : g.keyEvents);
+    let rows = [...groups.values()].map((g) => ({ keys: g.keys, g, metrics: metNames.map((n) => val(g, n)) }));
+    const order = req.orderBys[0];
+    const mi = order?.metric ? metNames.indexOf(order.metric.metricName) : 0;
+    rows.sort((a, b) => (b.metrics[Math.max(mi, 0)]! - a.metrics[Math.max(mi, 0)]!) || a.keys.join().localeCompare(b.keys.join()));
+    const total = rows.length;
+    const sum = { users: 0, views: 0, events: 0, keyEvents: 0 };
+    for (const r of rows) (sum.users += r.g.users, sum.views += r.g.views, sum.events += r.g.events, sum.keyEvents += r.g.keyEvents);
+    rows = rows.slice(0, Number(req.limit));
+    return {
+      dimensionHeaders: dimNames,
+      metricHeaders: metNames.map((name) => ({ name, type: "TYPE_INTEGER" })),
+      rows: rows.map((r) => ({ dimensions: r.keys, metrics: r.metrics.map(String) })),
+      rowCount: total,
+      timeZone: null,
+      currencyCode: null,
+      subjectToThresholding: false,
+      dataLossFromOtherRow: false,
+      sampling: [],
+      restrictedMetrics: [],
+      hasEmptyReason: total === 0,
+      totals: total > 0 ? metNames.map((n) => String(val(sum, n))) : null,
+      quota: {},
+      ...this.override,
+    };
+  }
 }
 
+
+const REALTIME_DIMS = ["appVersion", "city", "country", "deviceCategory", "eventName", "minutesAgo", "platform", "streamName", "unifiedScreenName", "audienceName"];
+const REALTIME_METS = ["activeUsers", "conversions", "eventCount", "keyEvents", "screenPageViews"];
+
 function leaf(f: Ga4Filter["filter"], dimValue: (n: string) => string): boolean {
+  if ("inListFilter" in f) return f.inListFilter.values.map((v) => v.toLowerCase()).includes(dimValue(f.fieldName).toLowerCase());
   if (!("stringFilter" in f)) return true;
   const v = dimValue(f.fieldName).toLowerCase();
   const x = f.stringFilter.value.toLowerCase();
@@ -354,19 +511,27 @@ function leaf(f: Ga4Filter["filter"], dimValue: (n: string) => string): boolean 
     case "BEGINS_WITH": return v.startsWith(x);
     case "ENDS_WITH": return v.endsWith(x);
     case "CONTAINS": return v.includes(x);
+    case "FULL_REGEXP": return new RegExp(`^(?:${x})$`, "i").test(dimValue(f.fieldName));
+    case "PARTIAL_REGEXP": return new RegExp(x, "i").test(dimValue(f.fieldName));
     default: return true;
   }
 }
 
+/** Evaluates a filter tree (AND, OR, NOT and leaves) the way Google does. */
+function evaluate(expr: Ga4FilterExpression, test: (f: Ga4Filter["filter"]) => boolean): boolean {
+  if (expr.andGroup) return expr.andGroup.expressions.every((e) => evaluate(e, test));
+  if (expr.orGroup) return expr.orGroup.expressions.some((e) => evaluate(e, test));
+  if (expr.notExpression) return !evaluate(expr.notExpression, test);
+  return expr.filter ? test(expr.filter) : true;
+}
+
 function matchesDimensionFilter(expr: Ga4FilterExpression | undefined, dimValue: (n: string) => string): boolean {
-  if (!expr) return true;
-  if (expr.filter) return leaf(expr.filter, dimValue);
-  return (expr.andGroup?.expressions ?? []).every((e) => leaf(e.filter, dimValue));
+  return !expr || evaluate(expr, (f) => leaf(f, dimValue));
 }
 
 function matchesMetricFilter(expr: Ga4FilterExpression | undefined, metric: (n: string) => number): boolean {
   if (!expr) return true;
-  const one = (f: Ga4Filter["filter"]): boolean => {
+  return evaluate(expr, (f) => {
     if (!("numericFilter" in f)) return true;
     const v = metric(f.fieldName);
     const x = f.numericFilter.value.doubleValue;
@@ -378,7 +543,5 @@ function matchesMetricFilter(expr: Ga4FilterExpression | undefined, metric: (n: 
       case "LESS_THAN_OR_EQUAL": return v <= x;
       default: return true;
     }
-  };
-  if (expr.filter) return one(expr.filter);
-  return (expr.andGroup?.expressions ?? []).every((e) => one(e.filter));
+  });
 }

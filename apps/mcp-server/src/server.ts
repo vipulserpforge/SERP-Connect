@@ -9,6 +9,8 @@ import {
   ListPropertiesSchema,
   QueryBingSchema,
   QueryGa4Schema,
+  QueryGa4CohortSchema,
+  QueryGa4RealtimeSchema,
   QueryGscSchema,
   ConnectorException,
   toConnectorError,
@@ -190,13 +192,45 @@ function toolDefs(service: ReportService): ToolDef[] {
         "Dates follow the property's own reporting time zone (shown by list_ga4_properties); lastDays ends yesterday. " +
         "Organic-only: add dimensionFilters [{field:\"sessionDefaultChannelGroup\",matchType:\"EXACT\",value:\"Organic Search\"}] and use landingPage (not pagePath) to rank entry pages by activeUsers. " +
         "Not every dimension works with every metric: invalid combinations are rejected with the fields to remove. Call get_supported_metrics with provider=ga4 and propertyId for the exact fields, including custom ones. " +
-        "User counts are not additive across rows. Check `warnings` for thresholding, sampling, '(other)' rows and more rows available (page with offset). Read-only.",
+        "Covers every GA4 Reports area: Acquisition, Engagement, Audience, Monetization (ecommerce), stickiness. Any dimension or metric GA4 lists for the property works (custom ones too). " +
+        "Ready-made reports: preset = organic_landing_pages, sessions_by_channel, traffic_by_channel_medium, traffic_by_source_medium, traffic_by_campaign, user_acquisition_by_channel, new_vs_returning, traffic_trend, engagement_by_page, landing_pages, key_events_by_page, events_overview, device_breakdown, country_breakdown, city_breakdown, age_breakdown, gender_breakdown, user_stickiness, revenue_by_product, revenue_by_category, revenue_by_channel, promotions_performance, ecommerce_funnel, lifetime_value_by_channel (sets dimensions and metrics for you). " +
+        "Filters: dimensionFilters support EXACT, BEGINS_WITH, ENDS_WITH, CONTAINS, FULL_REGEXP, PARTIAL_REGEXP, IN_LIST and exclude:true (NOT); filterMode \"or\" matches any filter instead of all. " +
+        "compareTo = previous_period | previous_year adds previous/change columns and totals change; offset pages; fresh=true skips the cache. " +
+        "The result has `summary`, `totals` (for ALL matching rows, with correct distinct users), `comparison` and `nextStep`: lead with the summary, then a table with the totals, then warnings in plain English (thresholding, sampling, '(other)' / '(not set)' rows, more rows available), then the nextStep. Read-only.",
       input: QueryGa4Schema,
       output: ReportOutput,
       annotations: READ_ONLY,
       provider: "ga4",
       async run(args, principal, requestId) {
         return asRecord(await service.queryGa4(principal, args, requestId));
+      },
+    },
+    {
+      name: "query_ga4_realtime",
+      title: "GA4 realtime",
+      description:
+        "Who is on the site right now, from the GA4 Realtime API: active users, views, events and key events for the last 1-30 minutes, by country, city, device, page title (unifiedScreenName), event name or platform. " +
+        "Live snapshot, not final and not comparable with query_ga4_report; no date range, no comparison. For daily or historical numbers use query_ga4_report. Read-only.",
+      input: QueryGa4RealtimeSchema,
+      output: ReportOutput,
+      annotations: READ_ONLY,
+      provider: "ga4",
+      async run(args, principal, requestId) {
+        return asRecord(await service.queryGa4Realtime(principal, args, requestId));
+      },
+    },
+    {
+      name: "query_ga4_cohort",
+      title: "GA4 cohort retention",
+      description:
+        "Retention by cohort: groups of users by the day, week or month of their FIRST visit, and the share still active in each later period (like the Retention report's cohort table). " +
+        "Uses the most recent COMPLETE cohorts; ask for granularity DAILY, WEEKLY (Sunday to Saturday) or MONTHLY, how many cohorts and periods. For overall stickiness (DAU/WAU/MAU) use query_ga4_report with preset user_stickiness; new vs returning is preset new_vs_returning. Read-only.",
+      input: QueryGa4CohortSchema,
+      output: ReportOutput,
+      annotations: READ_ONLY,
+      provider: "ga4",
+      async run(args, principal, requestId) {
+        return asRecord(await service.queryGa4Cohort(principal, args, requestId));
       },
     },
     listTool(

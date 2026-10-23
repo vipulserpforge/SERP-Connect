@@ -40,6 +40,8 @@ describe("tool catalog", () => {
       "list_clarity_projects",
       "list_ga4_properties",
       "list_gsc_properties",
+      "query_ga4_cohort",
+      "query_ga4_realtime",
       "query_ga4_report",
       "query_gsc_performance",
     ]);
@@ -119,7 +121,8 @@ describe("predictable output", () => {
     expect(r.isError).toBe(false);
     expect(r.parsed).toMatchObject({ provider: "ga4", rowCountReturned: 3, report: { period: { timeZone: "America/New_York", resolvedFrom: "lastDays" } } });
     const gsc = await call(await as(USER_A), "query_gsc_performance", { propertyId: "sc-domain:example.com", lastDays: 7, limit: 3 });
-    expect(Object.keys(r.parsed).sort()).toEqual(Object.keys(gsc.parsed).filter((k) => !["providerMetadata", "totals", "summary", "nextStep"].includes(k)).concat(Object.keys(r.parsed).filter((k) => k === "providerMetadata")).sort());
+    const without = (o: Out) => Object.keys(o).filter((k) => k !== "providerMetadata").sort();
+    expect(without(r.parsed)).toEqual(without(gsc.parsed));
   });
 
   it("a repeated report is served from cache and says so", async () => {

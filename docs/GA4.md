@@ -48,6 +48,61 @@ GA4 interprets dates in the property's reporting time zone. The zone is stored a
 
 Expired access tokens are refreshed transparently; a revoked refresh token becomes `AUTH_REVOKED`. At most 5 reports run at once per property (GA4 allows 10) so bursts queue instead of burning concurrency quota.
 
+## Tools and report coverage (GA4 Reports areas)
+
+The GA4 tools keep no field list of their own: every request is checked against the property's metadata and `checkCompatibility` (limited to the requested fields), so any dimension or metric the property lists can be asked for.
+
+### Tools
+
+| Tool | What it does |
+| --- | --- |
+| `query_ga4_report` | Any standard report; presets; filters; comparison; paging; `fresh` |
+| `query_ga4_cohort` | Retention by cohort (daily, weekly or monthly) |
+| `query_ga4_realtime` | Last 1-30 minutes |
+| `get_supported_metrics` (`provider: ga4`, `propertyId`) | The exact fields for a property |
+
+### Filters (`query_ga4_report`)
+
+- Dimension filters: `EXACT`, `BEGINS_WITH`, `ENDS_WITH`, `CONTAINS`, `FULL_REGEXP`, `PARTIAL_REGEXP` (RE2), `IN_LIST`; `exclude: true` negates one.
+- Metric filters: `EQUAL`, `GREATER_THAN`, `GREATER_THAN_OR_EQUAL`, `LESS_THAN`, `LESS_THAN_OR_EQUAL`.
+- `filterMode`: `and` (default) or `or`, applied to each list. Mixed trees (A and (B or C)) are not supported.
+
+### Presets
+
+| Area | Presets |
+| --- | --- |
+| Acquisition | `organic_landing_pages`, `sessions_by_channel`, `traffic_by_channel_medium`, `traffic_by_source_medium`, `traffic_by_campaign`, `user_acquisition_by_channel`, `new_vs_returning`, `traffic_trend` |
+| Engagement | `engagement_by_page`, `landing_pages`, `key_events_by_page`, `events_overview` |
+| Audience | `device_breakdown`, `country_breakdown`, `city_breakdown`, `age_breakdown`, `gender_breakdown` |
+| Retention | `user_stickiness` (DAU/WAU/MAU), and the `query_ga4_cohort` tool |
+| Monetization | `revenue_by_product`, `revenue_by_category`, `revenue_by_channel`, `promotions_performance`, `ecommerce_funnel`, `lifetime_value_by_channel` |
+
+A preset sets dimensions, metrics and sort; your own filters are added to the preset's.
+
+### Report areas
+
+| Area | Status | Notes |
+| --- | --- | --- |
+| Acquisition (user and traffic) | Full | First-user and session-scoped dimensions all work; presets for the common views |
+| Engagement (events, pages, landing pages, key events, engagement time) | Full | |
+| Engagement: user flow / path exploration | Not possible | The Data API has no path or flow report |
+| Retention: new vs returning, stickiness, cohorts | Full | Cohorts: most recent complete cohorts, up to 12 x 12 |
+| Retention: lifetime value | Partly | Revenue per user inside the date range by first-touch channel. GA4's multi-year LTV exploration is not in the Data API |
+| Monetization (purchases, items, revenue, promotions, brand, category) | Full | Funnel steps count events, not people |
+| Audience (device, country, city, age, gender) | Full | Age and gender cover only users Google can identify |
+| Comparison | Partly | `compareTo` = previous period or previous year, per row and in totals. Arbitrary extra date ranges are not supported |
+| Segments | Not possible | Segments exist only in the alpha Data API |
+| Audiences | Partly | Use an audience dimension if the property lists one; audience definitions (Admin API) are not read |
+| Explore (free-form, funnel, path), Advertising, Admin | Not supported | Not in the Data API (Explore, Advertising attribution) or not yet built (Admin: key events, audiences, data streams, BigQuery links) |
+
+### Limits that are Google's, not ours
+
+- Sampling and thresholding are applied by Google and reported as warnings; they cannot be avoided.
+- The latest 24-48 hours can still change.
+- Quotas are per property and reset hourly and daily; the tool does not retry a quota error within seconds.
+- Dates follow each property's own time zone, which can differ from Search Console (Pacific Time) and Clarity (UTC).
+- Cohort and funnel behaviour, and the compatibility of each preset's fields, were tested against a mock of the Data API, not against live Google.
+
 ## Needs live verification (cannot be proven with mocks)
 
 1. Admin API v1beta: `accountSummaries` shape, paging, `propertyType` values; `properties.get` `timeZone` / `currencyCode`. Whether v1beta suffices or v1alpha is needed for anything we use.
@@ -72,3 +127,7 @@ Nothing here has been done and nothing needs doing now.
 - **Quota**: standard GA4 property quotas apply per property and per project; request rate in the pilot should stay well under them (see the Data API quota page linked in the TRD).
 
 Not built yet: report persistence in the Postgres cache, comparisons across date ranges, pivot/cohort reports, audience/realtime reports, and cross-source (GSC vs GA4) comparison.
+9. The presets' field combinations (for example `userAgeBracket`, `averageRevenuePerUser`, the stickiness metrics, `itemsViewedInPromotion`) and the purchase-funnel metrics together without dimensions.
+10. Cohort reports: the `cohortSpec` request (cohorts by `firstSessionDate`, Sunday-to-Saturday weeks, `cohortNthDay/Week/Month`) and its response shape.
+11. Nested filters: `orGroup`, `notExpression`, `inListFilter` and regular-expression match types in a real request.
+12. Realtime: `runRealtimeReport` field list and `minuteRanges`.
