@@ -6,6 +6,8 @@ import { GOOGLE_SCOPES } from "@serp/provider-google";
 import Link from "next/link";
 import { disconnectConnectionAction, revokeClientGrantAction, startGoogleConnectAction, syncPropertiesAction, togglePropertyAction } from "@/app/actions";
 import { getEnv } from "@/lib/env";
+import { MCP_URL } from "@/lib/mcp-url";
+import { CopyButton } from "@/components/copy-button";
 import { getRepository, getServices, requireUser } from "@/lib/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -88,7 +90,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       grants = null; // OAuth server not enabled or Auth unreachable: the section simply does not render
     }
   }
-  const mcpUrl = getEnv().NEXT_PUBLIC_MCP_URL;
+  const mcpUrl = MCP_URL;
 
   // Overview numbers, all derived from what is already loaded above.
   const googleConnected = connections.some((c) => c.provider === "google" && c.status === "connected");
@@ -99,7 +101,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const SETUP = [
     { label: "Connect Google", done: googleConnected, href: "#gsc" },
     { label: "Choose properties for Claude", done: enabledCount > 0, href: "#gsc" },
-    { label: "Add the connector in Claude", done: claudeLinked, href: "/mcp" },
+    { label: "Add the connector in Claude", done: claudeLinked, href: "/mcp-guide" },
   ];
   const doneCount = SETUP.filter((x) => x.done).length;
   const NAV = [
@@ -364,6 +366,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           <p className="mt-2 text-sm">
             In Claude, add a custom connector with this address, then sign in when asked:
             <code className="mt-2 block break-all rounded-xl px-3 py-2" style={{ background: "rgba(0,0,0,0.35)", color: "var(--teal)" }}>{mcpUrl}</code>
+            <span className="mt-3 flex flex-wrap gap-2">
+              <CopyButton text={mcpUrl} label="Copy address" />
+              <Link href="/mcp-guide" className="btn-ghost !px-4 !py-2 text-sm">Step-by-step guide</Link>
+            </span>
           </p>
         ) : (
           <p className="mt-2 text-sm opacity-70">The connector address appears here once the MCP server is deployed.</p>

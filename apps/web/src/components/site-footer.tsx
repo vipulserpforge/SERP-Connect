@@ -8,7 +8,7 @@ const COLUMNS = [
       { href: "/#how", label: "How it works" },
       { href: "/#security", label: "Security" },
       { href: "/#faq", label: "FAQ" },
-      { href: "/mcp", label: "MCP connector" },
+      { href: "/mcp-guide", label: "Setup guide" },
     ],
   },
   {

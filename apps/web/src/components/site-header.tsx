@@ -1,14 +1,28 @@
 import Link from "next/link";
 import { signOutAction } from "@/app/actions";
 import { Logo } from "@/components/logo";
+import { MCP_URL } from "@/lib/mcp-url";
 import { getSessionUser } from "@/lib/server";
 
-const NAV = [
-  { href: "/#how", label: "How it works" },
-  { href: "/#security", label: "Security" },
-  { href: "/#faq", label: "FAQ" },
-  { href: "/mcp", label: "MCP connector" },
+const NAV: Array<{ href: string; label: string; external?: boolean }> = [
+  { href: "/", label: "Home" },
+  { href: MCP_URL, label: "MCP", external: true },
+  { href: "/mcp-guide", label: "Guide" },
+  { href: "/privacy", label: "Privacy" },
 ];
+
+/** One nav entry: the MCP address is another site, so it opens in a new tab. */
+function NavLink({ item, className }: { item: (typeof NAV)[number]; className: string }) {
+  return item.external ? (
+    <a href={item.href} target="_blank" rel="noopener noreferrer" className={className}>
+      {item.label}
+    </a>
+  ) : (
+    <Link href={item.href} className={className}>
+      {item.label}
+    </Link>
+  );
+}
 
 const navLink = "rounded-lg px-3 py-2 text-sm muted transition hover:text-white";
 
@@ -34,9 +48,7 @@ export async function SiteHeader() {
 
           <nav aria-label="Main" className="hidden items-center gap-1 lg:flex">
             {NAV.map((n) => (
-              <Link key={n.href} href={n.href} className={navLink}>
-                {n.label}
-              </Link>
+              <NavLink key={n.label} item={n} className={navLink} />
             ))}
           </nav>
 
@@ -80,9 +92,7 @@ export async function SiteHeader() {
               style={{ border: "1px solid var(--line)", background: "rgba(8,24,22,0.97)", boxShadow: "0 24px 60px rgba(0,0,0,0.5)" }}
             >
               {NAV.map((n) => (
-                <Link key={n.href} href={n.href} className="block rounded-xl px-3 py-3 text-base hover:bg-white/10">
-                  {n.label}
-                </Link>
+                <NavLink key={n.label} item={n} className="block rounded-xl px-3 py-3 text-base hover:bg-white/10" />
               ))}
               <div className="mt-2 grid gap-2 border-t pt-3" style={{ borderColor: "var(--line)" }}>
                 {signedIn ? (

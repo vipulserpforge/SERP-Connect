@@ -9,6 +9,8 @@ if (existsSync(rootEnv)) process.loadEnvFile(rootEnv);
 const nextConfig: NextConfig = {
   outputFileTracingRoot: resolve(import.meta.dirname, "../.."),
   poweredByHeader: false,
+  // The setup guide used to live at /mcp.
+  redirects: async () => [{ source: "/mcp", destination: "/mcp-guide", permanent: true }],
   headers: async () => [
     {
       source: "/:path*",
