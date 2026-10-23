@@ -135,15 +135,22 @@ summary:focus-visible {
   outline-offset: 2px;
 }
 
-/* ---- hero artwork: the logo's two overlapping rounded squares, as glass ---- */
+/* ---- hero artwork: the logo's two overlapping rounded squares, as liquid glass ---- */
 .glass-shape {
   position: absolute;
-  border-radius: 24%;
-  background: linear-gradient(145deg, rgba(171, 220, 214, 0.14), rgba(255, 255, 255, 0.02) 60%);
+  border-radius: 26%;
+  /* A soft top-left specular bloom over a teal body that warms toward orange at the far corner. */
+  background:
+    radial-gradient(120% 90% at 16% 6%, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0) 40%),
+    linear-gradient(150deg, rgba(171, 220, 214, 0.16), rgba(15, 163, 163, 0.05) 55%, rgba(255, 122, 0, 0.07));
   box-shadow:
-    inset 0 0 40px rgba(171, 220, 214, 0.1),
-    0 30px 80px rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(2px);
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.5),
+    inset 0 -26px 46px rgba(0, 0, 0, 0.28),
+    inset 0 0 48px rgba(171, 220, 214, 0.12),
+    0 40px 90px rgba(0, 0, 0, 0.55);
+  /* Blurs and saturates the grid behind it, which is what makes it read as thick glass. */
+  backdrop-filter: blur(16px) saturate(1.6);
+  -webkit-backdrop-filter: blur(16px) saturate(1.6);
 }
 /* A gradient rim cut out of the square's edge, like light catching thick glass. */
 .glass-shape::before {
@@ -151,11 +158,40 @@ summary:focus-visible {
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  padding: 9px;
-  background: conic-gradient(from 200deg, rgba(171, 220, 214, 0.75), rgba(255, 255, 255, 0.08) 22%, rgba(255, 122, 0, 0.55) 45%, rgba(15, 163, 163, 0.5) 62%, rgba(255, 255, 255, 0.1) 80%, rgba(171, 220, 214, 0.75));
+  padding: 7px;
+  background: conic-gradient(from 200deg, rgba(171, 220, 214, 0.7), rgba(255, 255, 255, 0.06) 22%, rgba(255, 122, 0, 0.5) 45%, rgba(15, 163, 163, 0.45) 62%, rgba(255, 255, 255, 0.08) 80%, rgba(171, 220, 214, 0.7));
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
+}
+/* A diagonal sheen across the face, the way a curved pane reflects a window. */
+.glass-shape::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(115deg, transparent 28%, rgba(255, 255, 255, 0.13) 44%, rgba(255, 255, 255, 0.03) 52%, transparent 62%);
+  pointer-events: none;
+}
+/* A small glass bead for depth next to the big panes. */
+.glass-bead {
+  position: absolute;
+  border-radius: 9999px;
+  background: radial-gradient(circle at 30% 26%, rgba(255, 255, 255, 0.85), rgba(171, 220, 214, 0.38) 34%, rgba(15, 163, 163, 0.2) 68%, rgba(255, 122, 0, 0.16));
+  box-shadow: inset 0 -8px 16px rgba(0, 0, 0, 0.3), 0 14px 34px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+/* The card that sits on the glass: calm, near-opaque frosted panel so text never competes with the artwork. */
+.glass-panel {
+  background: linear-gradient(180deg, rgba(15, 36, 34, 0.9), rgba(8, 22, 20, 0.94));
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 36px 90px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(28px) saturate(1.4);
+  -webkit-backdrop-filter: blur(28px) saturate(1.4);
 }
 .glow-orb {
   position: absolute;
@@ -234,4 +270,155 @@ details > summary::-webkit-details-marker {
 }
 details[open] .chev {
   transform: rotate(180deg);
+}
+
+/* ---- hero flow diagram (components/hero-flow.tsx) ---- */
+.hf-label {
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.75);
+  white-space: nowrap;
+}
+.hf-in {
+  --c: #2de2d0;
+}
+.hf-out {
+  --c: #ff8a1f;
+}
+/* A dashed line that flows when motion is allowed; static dashes otherwise. */
+.hf-line {
+  position: absolute;
+  height: 2px;
+  background-image: repeating-linear-gradient(90deg, var(--c) 0 6px, transparent 6px 14px);
+  background-size: 14px 2px;
+  filter: drop-shadow(0 0 3px var(--c)) drop-shadow(0 0 8px var(--c));
+}
+.hf-v {
+  height: auto;
+  width: 2px;
+  background-image: repeating-linear-gradient(180deg, var(--c) 0 6px, transparent 6px 14px);
+  background-size: 2px 14px;
+}
+.hf-typed {
+  display: inline-block;
+  overflow: hidden;
+  white-space: nowrap;
+  vertical-align: bottom;
+  max-width: var(--tw, 20em);
+  text-overflow: ellipsis;
+}
+
+@keyframes hf-flowx {
+  to {
+    background-position: 14px 0;
+  }
+}
+@keyframes hf-flowdn {
+  to {
+    background-position: 0 14px;
+  }
+}
+@keyframes hf-flowup {
+  to {
+    background-position: 0 -14px;
+  }
+}
+@keyframes hf-lineon {
+  0%,
+  12% {
+    opacity: 0.3;
+  }
+  20%,
+  92% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.3;
+  }
+}
+@keyframes hf-hub {
+  0%,
+  44% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(255, 122, 0, 0), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  }
+  50% {
+    transform: scale(1.06);
+    box-shadow: 0 0 0 16px rgba(255, 122, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  }
+  58%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(255, 122, 0, 0), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  }
+}
+@keyframes hf-glow {
+  0%,
+  76%,
+  100% {
+    border-color: rgba(255, 255, 255, 0.16);
+    box-shadow: 0 0 0 0 rgba(255, 122, 0, 0);
+  }
+  82%,
+  94% {
+    border-color: #ff7a00;
+    box-shadow: 0 0 0 4px rgba(255, 122, 0, 0.2);
+  }
+}
+@keyframes hf-typed {
+  0% {
+    max-width: 0;
+    animation-timing-function: steps(40, end);
+  }
+  14%,
+  94% {
+    max-width: var(--tw, 20em);
+    opacity: 1;
+  }
+  100% {
+    max-width: var(--tw, 20em);
+    opacity: 0;
+  }
+}
+@keyframes hf-answer {
+  0%,
+  72% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  78%,
+  94% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hf-line {
+    animation: hf-flowx 0.7s linear infinite, hf-lineon 7s linear infinite;
+  }
+  .hf-v.hf-dn {
+    animation: hf-flowdn 0.7s linear infinite, hf-lineon 7s linear infinite;
+  }
+  .hf-v.hf-up {
+    animation: hf-flowup 0.7s linear infinite, hf-lineon 7s linear infinite;
+  }
+  .hf-hub {
+    animation: hf-hub 7s ease-in-out infinite;
+  }
+  .hf-glow {
+    animation: hf-glow 7s ease-in-out infinite;
+  }
+  .hf-typed {
+    max-width: 0;
+    animation: hf-typed 7s linear infinite;
+  }
+  .hf-answer {
+    opacity: 0;
+    animation: hf-answer 7s ease-out infinite;
+  }
 }

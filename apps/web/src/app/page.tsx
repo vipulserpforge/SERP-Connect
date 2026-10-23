@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { AnswerCard } from "@/components/answer-card";
-import { EXAMPLES } from "@/components/examples";
+import { HeroFlow } from "@/components/hero-flow";
 import { PromptDemo } from "@/components/prompt-demo";
 
 const SOURCES = [
@@ -85,12 +84,12 @@ export default function HomePage() {
   return (
     <main>
       {/* ───────── Hero: the question and its answer ───────── */}
-      <section className="container-x relative grid items-center gap-12 pb-16 pt-14 sm:pt-20 lg:grid-cols-[1.05fr_0.95fr] lg:gap-10 lg:pb-28 lg:pt-24">
+      <section className="container-x relative grid items-center gap-12 pb-16 pt-14 sm:pt-20 lg:grid-cols-[0.92fr_1.08fr] lg:gap-10 lg:pb-28 lg:pt-24">
         <div>
           <p className="pill enter" style={{ color: "var(--teal)", ["--i" as string]: 0 }}>
             Search Console + GA4 + Clarity + Bing, for Claude
           </p>
-          <h1 className="enter mt-6 text-[2.6rem] font-medium leading-[1.04] tracking-tight sm:text-6xl lg:text-7xl" style={{ ["--i" as string]: 1 }}>
+          <h1 className="enter mt-6 text-[2.6rem] font-medium leading-[1.04] tracking-tight sm:text-6xl" style={{ ["--i" as string]: 1 }}>
             Ask Claude about your <span className="accent">SEO data.</span>
           </h1>
           <p className="muted enter mt-6 max-w-xl text-lg leading-relaxed sm:text-xl" style={{ ["--i" as string]: 2 }}>
@@ -111,10 +110,12 @@ export default function HomePage() {
 
         <div className="enter relative mx-auto w-full max-w-xl lg:max-w-none" style={{ ["--i" as string]: 3 }}>
           <div className="glow-orb" style={{ width: "62%", aspectRatio: "1", right: "-6%", top: "26%" }} aria-hidden="true" />
-          <div className="glass-shape drift-a" style={{ width: "58%", aspectRatio: "1", right: "-4%", top: "-9%" }} aria-hidden="true" />
-          <div className="glass-shape drift-b" style={{ width: "50%", aspectRatio: "1", left: "-5%", bottom: "-12%" }} aria-hidden="true" />
+          {/* The panes peek out from behind the card's corners, so their bright rims never cross the text. */}
+          <div className="glass-shape drift-a" style={{ width: "50%", aspectRatio: "1", right: "-10%", top: "-11%" }} aria-hidden="true" />
+          <div className="glass-shape drift-b" style={{ width: "42%", aspectRatio: "1", left: "-13%", bottom: "-12%" }} aria-hidden="true" />
+          <div className="glass-bead drift-b" style={{ width: "clamp(36px, 7%, 64px)", aspectRatio: "1", right: "4%", bottom: "-3%" }} aria-hidden="true" />
           <div className="relative z-10 py-8 sm:py-12">
-            <AnswerCard example={EXAMPLES[0]!} compact />
+            <HeroFlow />
           </div>
         </div>
       </section>
@@ -238,8 +239,8 @@ export default function HomePage() {
               <Link href="/signup" className="btn-primary !min-h-12 !px-8 text-base">
                 Create account <span aria-hidden="true">↗</span>
               </Link>
-              <Link href="/mcp" className="btn-ghost !min-h-12 !px-8 text-base">
-                MCP connector guide
+              <Link href="/mcp-guide" className="btn-ghost !min-h-12 !px-8 text-base">
+                Step-by-step setup guide
               </Link>
             </div>
           </div>

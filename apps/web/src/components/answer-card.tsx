@@ -5,8 +5,7 @@ export function AnswerCard({ example, compact = false }: { example: Example; com
   return (
     <div
       data-ui
-      className="w-full rounded-2xl text-left backdrop-blur-md"
-      style={{ border: "1px solid rgba(255,255,255,0.16)", background: "rgba(9,26,24,0.88)", boxShadow: "0 30px 80px rgba(0,0,0,0.5)" }}
+      className="glass-panel w-full rounded-2xl text-left"
     >
       <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-5" style={{ borderBottom: "1px solid var(--line)" }}>
         <span className="flex items-center gap-2 text-sm font-medium">
