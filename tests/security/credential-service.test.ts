@@ -172,6 +172,24 @@ describe("access tokens and refresh", () => {
     expect(s.google.refreshCalls).toBe(1);
   });
 
+  it("a single rejected token (AUTH_EXPIRED) is not sticky: the next call refreshes and recovers", async () => {
+    const { s, connectionId } = await connected();
+    await s.credentials.markNeedsAttention(USER_1, connectionId, "AUTH_EXPIRED");
+    expect((await s.repo.getConnection(USER_1, connectionId))!.status).toBe("needs_attention");
+    const t = await s.credentials.forceRefreshAccessToken(USER_1, connectionId);
+    expect(t.accessToken).toBeTruthy();
+    expect(s.google.refreshCalls).toBe(1);
+    expect((await s.repo.getConnection(USER_1, connectionId))!.status).toBe("connected");
+  });
+
+  it("AUTH_EXPIRED recovery gives up and asks for a reconnect when the refresh token is dead", async () => {
+    const { s, connectionId } = await connected();
+    await s.credentials.markNeedsAttention(USER_1, connectionId, "AUTH_EXPIRED");
+    s.google.failRefreshWith = "invalid_grant";
+    await expect(s.credentials.forceRefreshAccessToken(USER_1, connectionId)).rejects.toMatchObject({ code: "AUTH_REVOKED" });
+    expect(await s.repo.getConnection(USER_1, connectionId)).toMatchObject({ status: "needs_attention", lastErrorCode: "AUTH_REVOKED" });
+  });
+
   it("transient Google failure is retryable and does not damage the connection", async () => {
     const { s, connectionId } = await connected();
     s.time.now += 2 * 3600_000;

@@ -6,7 +6,7 @@ export function SiteFooter() {
     <footer className="mt-24 border-t" style={{ borderColor: "var(--line)" }}>
       <div className="mx-auto flex max-w-6xl flex-col gap-6 px-5 py-10 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <Image src="/logo-sf.svg" alt="SERP Forge" width={120} height={28} unoptimized />
+          <Image src="/logo-serp-connect.svg" alt="SERP Connect by SERP Forge" width={103} height={36} unoptimized />
           <p className="muted mt-3 max-w-xs text-sm">Your Search Console and GA4 data, answered in plain language by Claude.</p>
         </div>
         <nav className="muted flex flex-wrap gap-x-6 gap-y-2 text-sm">

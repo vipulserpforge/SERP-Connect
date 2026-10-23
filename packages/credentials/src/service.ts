@@ -36,6 +36,8 @@ export interface CredentialServiceDeps {
 /** Binds ciphertext to its owner: a secret copied to another user's or connection's row will not decrypt. */
 export const secretAad = (userId: string, connectionId: string) => `cred:v1:${userId}:${connectionId}`;
 
+const RECONNECT_HINT = "Open the SERP Connect dashboard, find this Google account under Connections and click Reconnect, then ask again.";
+
 /**
  * The only code that reads or writes provider credentials. Tokens are decrypted just-in-time, kept in
  * local variables, and never logged, audited or returned to anything but the calling adapter.
@@ -75,7 +77,7 @@ export class CredentialService {
       await this.deps.creds.setConnectionStatus(userId, connectionId, "needs_attention", { errorCode: "CREDENTIAL_UNREADABLE" });
       await writeAudit(this.deps.repo, this.deps.logger, { userId, connectionId, eventType: "credential.unreadable" });
       throw new ConnectorException("AUTH_EXPIRED", "Stored credentials could not be used. Please reconnect.", {
-        suggestedAction: "Reconnect the provider from the dashboard.",
+        suggestedAction: RECONNECT_HINT,
       });
     }
   }
@@ -101,13 +103,15 @@ export class CredentialService {
       // Same answer for "does not exist" and "belongs to someone else".
       throw new ConnectorException("PROPERTY_NOT_CONNECTED", "That connection is not available for this account.");
     }
-    this.assertUsable(conn.status);
+    // A single rejected token (AUTH_EXPIRED) is not proof the grant is gone: try one refresh. A failed refresh
+    // (invalid_grant) sets AUTH_REVOKED, which does stay blocked until the user reconnects.
+    if (!(conn.status === "needs_attention" && conn.lastErrorCode === "AUTH_EXPIRED")) this.assertUsable(conn.status);
 
     const loaded = await this.load(userId, connectionId);
     if (!loaded) {
       await this.deps.creds.setConnectionStatus(userId, connectionId, "needs_attention", { errorCode: "CREDENTIAL_MISSING" });
       throw new ConnectorException("AUTH_EXPIRED", "This connection has no stored credentials. Please reconnect.", {
-        suggestedAction: "Reconnect the provider from the dashboard.",
+        suggestedAction: RECONNECT_HINT,
       });
     }
     const { payload, version } = loaded;
@@ -117,15 +121,29 @@ export class CredentialService {
     return this.refresh(userId, connectionId, payload, version, requestId);
   }
 
+  /**
+   * Refreshes the access token now, even if the stored one looks valid. Used once after Google answers 401 for a token
+   * we believed good (it can be invalidated early), so a stale token never surfaces as a reconnect request when the
+   * refresh token still works. A revoked refresh token still ends in AUTH_REVOKED.
+   */
+  async forceRefreshAccessToken(userId: string, connectionId: string, requestId?: string): Promise<AccessToken> {
+    const conn = await this.deps.repo.getConnection(userId, connectionId);
+    if (!conn) throw new ConnectorException("PROPERTY_NOT_CONNECTED", "That connection is not available for this account.");
+    if (!(conn.status === "needs_attention" && conn.lastErrorCode === "AUTH_EXPIRED")) this.assertUsable(conn.status);
+    const loaded = await this.load(userId, connectionId);
+    if (!loaded) throw new ConnectorException("AUTH_EXPIRED", "This connection has no stored credentials. Please reconnect.", { suggestedAction: RECONNECT_HINT });
+    return this.refresh(userId, connectionId, loaded.payload, loaded.version, requestId);
+  }
+
   private assertUsable(status: ConnectionStatus): void {
     if (status === "connected") return;
     if (status === "revoked") {
       throw new ConnectorException("AUTH_REVOKED", "Access to this account was revoked.", {
-        suggestedAction: "Reconnect the provider from the dashboard.",
+        suggestedAction: RECONNECT_HINT,
       });
     }
     throw new ConnectorException("AUTH_EXPIRED", "This connection needs attention.", {
-      suggestedAction: "Reconnect the provider from the dashboard.",
+      suggestedAction: RECONNECT_HINT,
     });
   }
 
@@ -168,7 +186,7 @@ export class CredentialService {
       await writeAudit(this.deps.repo, this.deps.logger, { ...base, eventType: "credential.refresh_failed", metadata: { errorKind: kind } });
       throw new ConnectorException("AUTH_REVOKED", "Google access was revoked or has expired. Please reconnect.", {
         provider: "google",
-        suggestedAction: "Reconnect the provider from the dashboard.",
+        suggestedAction: RECONNECT_HINT,
       });
     }
     if (kind === "invalid_client" || kind === "bad_response") {

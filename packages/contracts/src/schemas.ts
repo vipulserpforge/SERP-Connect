@@ -52,6 +52,12 @@ export const QueryGscSchema = z
     sortBy: z.enum(["clicks", "impressions", "ctr", "position"]).default("clicks").describe("Metric to order rows by."),
     sortDirection: z.enum(["asc", "desc"]).default("desc"),
     limit: z.number().int().min(1).max(1000).default(25).describe("Maximum rows to return (server maximum applies)."),
+    offset: z.number().int().min(0).max(100_000).default(0).describe("Rows to skip, to page past the first `limit` rows when a warning says more rows exist."),
+    compareTo: z
+      .enum(["previous_period", "previous_year"])
+      .optional()
+      .describe("Also fetch an earlier range and add previous/change columns to every row and the totals. previous_period = the same number of days right before the range; previous_year = the same dates a year earlier."),
+    fresh: z.boolean().optional().describe("true skips the saved-result cache and asks Google again. Use only when the user needs the very latest numbers."),
     /** "final" (default) returns only finalized days; "all" also returns fresh, still-changing data. */
     dataState: z.enum(["final", "all"]).default("final"),
   })
@@ -106,7 +112,10 @@ export type QueryGa4Input = z.infer<typeof QueryGa4Schema>;
 export const GetClarityInsightsSchema = z
   .object({
     propertyId: z.string().min(1).max(256),
-    numOfDays: z.union([z.literal(1), z.literal(2), z.literal(3)]).default(1),
+    numOfDays: z
+      .union([z.literal(1), z.literal(2), z.literal(3)], { message: "Clarity only reports the last 1, 2 or 3 days (24-72 hours). For 7, 28 or 90 days use query_gsc_performance or query_ga4_report." })
+      .default(1)
+      .describe("Rolling window: 1, 2 or 3 days. Clarity cannot report anything older than 72 hours."),
     dimensions: z.array(z.string().min(1).max(64)).max(3).default([]),
   })
   .strict();

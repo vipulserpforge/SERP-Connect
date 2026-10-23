@@ -1,5 +1,5 @@
 import type { NormalizedReportResult, ReportRow, ReportWarning } from "@serp/contracts";
-import { CLARITY_MAX_ROWS, CLARITY_TIME_SEMANTICS } from "./constants.js";
+import { CLARITY_MAX_ROWS, CLARITY_NUM_OF_DAYS, CLARITY_TIME_SEMANTICS } from "./constants.js";
 
 export interface MetricBlockInfo {
   metricName: string;
@@ -97,6 +97,19 @@ export function buildClarityResult(input: {
     });
   }
   const truncated = parsed.blocks.some((b) => b.truncated);
+  const bots = summarizeBotTraffic(parsed.rows);
+  if (bots && bots.botSessions > 0) {
+    warnings.push({
+      code: "BOT_TRAFFIC_INCLUDED",
+      message: `Clarity counts bot sessions: ${bots.botSessions} of ${bots.totalSessions} sessions (${bots.botSharePercent}%) in this window are bots. Session counts include them; human sessions are about ${bots.humanSessions}. Treat unfiltered session, page and engagement numbers as inflated by bots.`,
+    });
+  } else if (!bots && !empty) {
+    warnings.push({ code: "BOT_TRAFFIC_UNKNOWN", message: "This response has no bot-session count, so bot traffic cannot be separated from human sessions." });
+  }
+  warnings.push({
+    code: "CLARITY_LAST_72_HOURS_ONLY",
+    message: `Clarity only reports the last ${CLARITY_NUM_OF_DAYS.length * 24} hours at most (${input.numOfDays * 24}h here), with no custom dates. For 7, 28 or 90 days use query_gsc_performance (search) or query_ga4_report (traffic).`,
+  });
   return {
     provider: "clarity",
     property: input.property,
@@ -124,7 +137,34 @@ export function buildClarityResult(input: {
       windowStartsApproximately: new Date(now.getTime() - input.numOfDays * 86_400_000).toISOString(),
       timeZone: "UTC",
       metricBlocks: parsed.blocks,
+      maxHistoryHours: CLARITY_NUM_OF_DAYS.length * 24,
+      ...(bots && { botTraffic: bots }),
     },
     requestId: input.requestId,
   };
+}
+
+export interface BotTrafficSummary {
+  totalSessions: number;
+  botSessions: number;
+  humanSessions: number;
+  botSharePercent: number;
+}
+
+/** Sums the Traffic block's total and bot session counts. Null when the response carries no bot count to compare. */
+export function summarizeBotTraffic(rows: readonly ReportRow[]): BotTrafficSummary | null {
+  let total = 0;
+  let bot = 0;
+  let seen = false;
+  for (const r of rows) {
+    if (squash(String(r.metricName)) !== "traffic") continue;
+    const t = r[Object.keys(r).find((k) => squash(k) === "totalsessioncount") ?? ""];
+    const b = r[Object.keys(r).find((k) => squash(k) === "totalbotsessioncount") ?? ""];
+    if (typeof t !== "number" || typeof b !== "number") continue;
+    seen = true;
+    total += t;
+    bot += b;
+  }
+  if (!seen) return null;
+  return { totalSessions: total, botSessions: bot, humanSessions: Math.max(0, total - bot), botSharePercent: total > 0 ? Math.round((bot / total) * 1000) / 10 : 0 };
 }

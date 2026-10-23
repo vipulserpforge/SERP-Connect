@@ -164,7 +164,9 @@ function toolDefs(service: ReportService): ToolDef[] {
         "Query Search Console search performance: clicks, impressions, CTR and average position, grouped by date, page, query, country, device or search appearance, with optional filters. " +
         DATE_HELP +
         "Dates are Pacific Time (Search Console's calendar); lastDays ends on the last finalized day, and dataState=all includes fresher, still-changing days. Data goes back about 16 months. " +
-        "The result lists `warnings` (recent data incomplete, anonymized queries omitted, row limit reached) and `completeness`: report them to the user rather than ignoring them. Read-only.",
+        "The result has `summary` and `nextStep` (plain language: start your answer from them), `totals` (the whole range for the same filters; row sums can be lower because Google omits rare queries) and `warnings`: report warnings to the user rather than ignoring them. " +
+        "Row limit is 1000 per call: when a warning says more rows exist, call again with `offset`. For 'what changed' questions set compareTo (previous_period or previous_year): every row then carries previous/change columns (positionChange below 0 = better ranking) and `comparison` holds the totals change. " +
+        "Results are cached for minutes to hours; set fresh=true only when the user needs the very latest numbers. Merged rows: page URLs that differ only by a #fragment are combined. Read-only.",
       input: QueryGscSchema,
       output: ReportOutput,
       annotations: READ_ONLY,
@@ -186,6 +188,7 @@ function toolDefs(service: ReportService): ToolDef[] {
         "Run a Google Analytics 4 report (users, sessions, views, events, key events and other metrics by dimension). " +
         DATE_HELP +
         "Dates follow the property's own reporting time zone (shown by list_ga4_properties); lastDays ends yesterday. " +
+        "Organic-only: add dimensionFilters [{field:\"sessionDefaultChannelGroup\",matchType:\"EXACT\",value:\"Organic Search\"}] and use landingPage (not pagePath) to rank entry pages by activeUsers. " +
         "Not every dimension works with every metric: invalid combinations are rejected with the fields to remove. Call get_supported_metrics with provider=ga4 and propertyId for the exact fields, including custom ones. " +
         "User counts are not additive across rows. Check `warnings` for thresholding, sampling, '(other)' rows and more rows available (page with offset). Read-only.",
       input: QueryGa4Schema,
@@ -209,9 +212,9 @@ function toolDefs(service: ReportService): ToolDef[] {
       description:
         "Microsoft Clarity on-site behaviour data for one connected project: sessions and traffic, popular pages, engagement time, scroll depth, device/browser/OS/country/source breakdowns, and interaction or error signals (rage clicks, dead clicks, quick-backs, script errors). " +
         "Use it for how visitors behave ON the site. It is NOT search data: for rankings, search impressions, queries or organic clicks use query_gsc_performance, and for audience and conversions use query_ga4_report. " +
-        "Window: only the last 24, 48 or 72 hours (numOfDays 1, 2 or 3), as a rolling window in UTC; no custom dates, history or paging. Up to 3 dimensions (Browser, Device, Country/Region, OS, Source, Medium, Campaign, Channel, URL); each metric block returns at most 1,000 rows. " +
+        "LIMIT: Clarity can only look back 72 hours (numOfDays 1, 2 or 3). It cannot answer 7, 28 or 90 day questions: use query_gsc_performance or query_ga4_report for those and say so to the user. Window is a rolling window in UTC; no custom dates, history or paging. Up to 3 dimensions (Browser, Device, Country/Region, OS, Source, Medium, Campaign, Channel, URL); each metric block returns at most 1,000 rows. " +
         "Each project may make only 10 Clarity requests per day, so a fresh call spends scarce quota: results are cached for hours and repeating the same question is free. Do not call it repeatedly or with varying parameters to 'explore'; call get_clarity_quota_status first if unsure. " +
-        "Check `cache` (hit/stale), `warnings` (truncation, empty result, stale data) and `completeness`: an empty result means no data was reported, not zeros. Read-only.",
+        "Clarity sessions include bots: check the BOT_TRAFFIC_INCLUDED warning and `providerMetadata.botTraffic` before quoting session counts. Check `cache` (hit/stale), `warnings` (truncation, empty result, stale data) and `completeness`: an empty result means no data was reported, not zeros. Read-only.",
       input: GetClarityInsightsSchema,
       output: ReportOutput,
       annotations: READ_ONLY,

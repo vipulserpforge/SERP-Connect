@@ -17,6 +17,8 @@ export type Ga4Adapter = ReportAdapter<Ga4Query> & {
 export interface GoogleGa4AdapterDeps {
   client: Ga4ApiClient;
   getAccessToken: (ctx: AuthorizedQueryContext) => Promise<string>;
+  /** Forces a token refresh after a 401 on a token that looked valid; the call is then retried once. */
+  refreshAccessToken?: (ctx: AuthorizedQueryContext) => Promise<string>;
   onAuthRejected?: (ctx: AuthorizedQueryContext) => Promise<void>;
   now?: () => Date;
   /** How long property metadata and compatibility answers are reused. */
@@ -25,7 +27,7 @@ export interface GoogleGa4AdapterDeps {
   maxConcurrentPerProperty?: number;
 }
 
-const RECONNECT = "Reconnect the Google account from the dashboard.";
+const RECONNECT = "Open the SERP Connect dashboard, find this Google account under Connections and click Reconnect, then ask again.";
 
 /** Translates an API failure into the shared, user-presentable error. Never includes upstream text. */
 export function toGa4ConnectorError(err: unknown): ConnectorException {
@@ -122,12 +124,25 @@ export class GoogleGa4Adapter implements Ga4Adapter {
     }
   }
 
+  /** Runs a Google call with the connection's token; on a 401 refreshes the token once and retries before giving up. */
+  private async authed<T>(ctx: AuthorizedQueryContext, op: (token: string) => Promise<T>): Promise<T> {
+    let token = await this.deps.getAccessToken(ctx);
+    return this.fail(ctx, async () => {
+      try {
+        return await op(token);
+      } catch (err) {
+        if (!(err instanceof Ga4ApiError && err.kind === "unauthenticated") || !this.deps.refreshAccessToken) throw err;
+        token = await this.deps.refreshAccessToken(ctx);
+        return op(token);
+      }
+    });
+  }
+
   async describeFields(ctx: AuthorizedQueryContext): Promise<Ga4Metadata> {
     const key = this.key(ctx);
     const hit = this.metadata.get(key);
     if (hit && hit.expiresAt > this.nowMs()) return hit.value;
-    const token = await this.deps.getAccessToken(ctx);
-    const value = await this.fail(ctx, () => this.deps.client.getMetadata(token, ctx.property.externalPropertyId, ctx.signal));
+    const value = await this.authed(ctx, (token) => this.deps.client.getMetadata(token, ctx.property.externalPropertyId, ctx.signal));
     this.metadata.set(key, { value, expiresAt: this.nowMs() + this.ttl });
     return value;
   }
@@ -137,18 +152,17 @@ export class GoogleGa4Adapter implements Ga4Adapter {
     const metadata = await this.describeFields(ctx);
     validateGa4Fields(query, metadata);
 
-    const token = await this.deps.getAccessToken(ctx);
     const compatKey = `${this.key(ctx)}|${[...query.dimensions].sort().join(",")}|${[...query.metrics].sort().join(",")}`;
     let compat = this.compat.get(compatKey);
     if (!compat || compat.expiresAt <= this.nowMs()) {
-      const result = await this.fail(ctx, () => this.deps.client.checkCompatibility(token, propertyId, { dimensions: query.dimensions, metrics: query.metrics }, ctx.signal));
+      const result = await this.authed(ctx, (token) => this.deps.client.checkCompatibility(token, propertyId, { dimensions: query.dimensions, metrics: query.metrics }, ctx.signal));
       compat = { value: { dims: result.incompatibleDimensions, mets: result.incompatibleMetrics }, expiresAt: this.nowMs() + this.ttl };
       this.compat.set(compatKey, compat);
     }
     if (compat.value.dims.length > 0 || compat.value.mets.length > 0) throw describeIncompatibility(compat.value.dims, compat.value.mets);
 
     const request = buildRunReportRequest(query);
-    const response = await this.fail(ctx, () => this.gate.run(this.key(ctx), () => this.deps.client.runReport(token, propertyId, request, ctx.signal)));
+    const response = await this.authed(ctx, (token) => this.gate.run(this.key(ctx), () => this.deps.client.runReport(token, propertyId, request, ctx.signal)));
     const { rows, warnings, completeness, providerMetadata, timeZone } = normalizeGa4Response(query, response, ctx.property.timezone);
 
     const all: ReportWarning[] = this.mock ? [{ code: "MOCK_DATA", message: "Synthetic fixture data; not from Google." }, ...warnings] : warnings;

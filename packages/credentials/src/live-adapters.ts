@@ -26,6 +26,7 @@ export function createLiveAdapters(credentials: CredentialService, options: Live
   const tokens = {
     // The token is fetched for the connection the authorization step already resolved: never a caller-supplied id.
     getAccessToken: async (ctx: AuthorizedQueryContext) => (await credentials.getAccessToken(ctx.userId, ctx.connection.id, ctx.requestId)).accessToken,
+    refreshAccessToken: async (ctx: AuthorizedQueryContext) => (await credentials.forceRefreshAccessToken(ctx.userId, ctx.connection.id, ctx.requestId)).accessToken,
     onAuthRejected: (ctx: AuthorizedQueryContext) => credentials.markNeedsAttention(ctx.userId, ctx.connection.id, "AUTH_EXPIRED", ctx.requestId),
   };
   return {

@@ -161,7 +161,13 @@ export class ReportService {
   private assertEnabled(provider: ProviderKey): void {
     const e = this.deps.env;
     const enabled = { gsc: e.PROVIDER_GSC_ENABLED, ga4: e.PROVIDER_GA4_ENABLED, clarity: e.PROVIDER_CLARITY_ENABLED, bing: e.PROVIDER_BING_ENABLED }[provider];
-    if (!enabled) throw new ConnectorException("PROVIDER_CAPABILITY_UNAVAILABLE", `${provider} is disabled on this server.`, { provider });
+    if (!enabled) {
+      const flag = `PROVIDER_${provider.toUpperCase()}_ENABLED`;
+      throw new ConnectorException("PROVIDER_CAPABILITY_UNAVAILABLE", `${provider} is switched off on this server (${flag}=false), so its data cannot be queried even if the account is connected.`, {
+        provider,
+        suggestedAction: `This is a server setting, not an account problem: the operator must set ${flag}=true for the web app and the MCP server and restart both${provider === "bing" ? " (after the live check in docs/BING.md passes)" : ""}. Until then use Search Console or GA4 for this question.`,
+      });
+    }
   }
 
   async getConnectionStatus(principal: Principal): Promise<ConnectionStatusEntry[]> {
@@ -195,10 +201,30 @@ export class ReportService {
     const input = parseInput(QueryGscSchema, rawInput);
     const auth = await authorizeProperty(this.deps.repo, principal, "gsc", input.propertyId);
     const period = resolveReportDates("gsc", input, { dataState: input.dataState, now: this.now() });
-    const { lastDays: _l, ...rest } = input;
+    // `fresh` and `compareTo` steer this call only: they are not part of the query, so they never change the cache identity.
+    const { lastDays: _l, fresh, compareTo, ...rest } = input;
     const query: GscQuery = canonicalizeGscQuery({ ...rest, startDate: period.startDate, endDate: period.endDate, limit: Math.min(input.limit, this.deps.env.MAX_REPORT_ROWS_HARD_LIMIT) });
-    const { warnings } = validateGscDateRange(query.startDate, query.endDate, this.now());
-    return this.runReport(this.deps.gsc, query, auth, principal, requestId, period, warnings);
+    const { warnings } = validateGscDateRange(query.startDate, query.endDate, this.now(), query.dataState);
+    const current = await this.runReport(this.deps.gsc, query, auth, principal, requestId, period, warnings, fresh === true);
+    return compareTo ? this.withComparison(current, query, compareTo, auth, principal, requestId, fresh === true) : current;
+  }
+
+  /** Fetches the earlier range with the same filters and adds previous/change columns. A failed comparison never hides the current data. */
+  private async withComparison(current: NormalizedReportResult, query: GscQuery, compareTo: "previous_period" | "previous_year", auth: Auth, principal: Principal, requestId: string, fresh: boolean): Promise<NormalizedReportResult> {
+    const { startDate, endDate } = previousRange(query.startDate, query.endDate, compareTo);
+    const label = compareTo === "previous_year" ? "the same dates a year earlier" : "the previous period";
+    const skip = (message: string): NormalizedReportResult => ({ ...current, warnings: [...current.warnings, { code: "COMPARISON_UNAVAILABLE", message }] });
+    let prev: NormalizedReportResult;
+    try {
+      validateGscDateRange(startDate, endDate, this.now(), query.dataState);
+      // Match rows by key: take the largest page Google gives so current rows are found whenever they exist.
+      const prevQuery: GscQuery = { ...query, startDate, endDate, sortBy: "clicks", sortDirection: "desc", limit: this.deps.env.MAX_REPORT_ROWS_HARD_LIMIT, offset: 0 };
+      prev = await this.runReport(this.deps.gsc, prevQuery, auth, principal, requestId, null, [], fresh);
+    } catch (err) {
+      if (isConnectorException(err) && err.code === "DATE_RANGE_UNSUPPORTED") return skip(`The comparison range ${startDate} to ${endDate} is outside what Search Console keeps (about 16 months), so no comparison is shown.`);
+      return skip(`The comparison with ${label} could not be fetched (${isConnectorException(err) ? err.code : "error"}); the current data is shown without it.`);
+    }
+    return mergeGscComparison(current, prev, query.dimensions, { label, startDate, endDate });
   }
 
   async queryGa4(principal: Principal, rawInput: unknown, requestId: string): Promise<NormalizedReportResult> {
@@ -325,7 +351,7 @@ export class ReportService {
     const { provider, propertyId } = parseInput(GetSupportedMetricsSchema, rawInput);
     switch (provider) {
       case "gsc":
-        return { provider, dimensions: [...GSC_DIMENSIONS], metrics: [...GSC_METRICS], limits: { maxRows: this.deps.env.MAX_REPORT_ROWS_HARD_LIMIT, retentionMonths: 16, dateSemantics: "Pacific Time" }, notes: ["Results may omit rows due to Google's internal limits.", "The latest 1-2 days can be incomplete; set dataState to \"all\" to include fresh, still-changing days.", "Grouping by query omits anonymized queries.", "searchAppearance must be queried on its own.", "Sorting by anything other than clicks is applied to up to 25,000 rows fetched from Google."] };
+        return { provider, dimensions: [...GSC_DIMENSIONS], metrics: [...GSC_METRICS], limits: { maxRows: this.deps.env.MAX_REPORT_ROWS_HARD_LIMIT, retentionMonths: 16, dateSemantics: "Pacific Time" }, notes: ["Results may omit rows due to Google's internal limits.", "The latest 1-2 days can be incomplete; set dataState to \"all\" to include fresh, still-changing days.", "Grouping by query omits anonymized queries.", "searchAppearance must be queried on its own.", "Sorting by anything other than clicks is applied to up to 25,000 rows fetched from Google.", "Use offset to page past 1,000 rows, compareTo for previous-period or previous-year change, and fresh=true to skip the cache.", "totals covers the whole range for the same filters and can exceed the sum of rows."] };
       case "ga4": {
         const limits = { maxRows: this.deps.env.MAX_REPORT_ROWS_HARD_LIMIT, maxDimensions: 9, maxMetrics: 10, dateSemantics: "Property reporting time zone", earliestStartDate: "2015-08-14" };
         const notes = ["Not every dimension can be combined with every metric; incompatible requests are rejected with the fields to remove.", "User counts are distinct per row and are not additive.", "Recent days can take 24-48 hours to finish processing."];
@@ -400,17 +426,18 @@ export class ReportService {
     requestId: string,
     period: PeriodInfo | null,
     warnings: ReportWarning[],
+    bypassCache = false,
   ): Promise<NormalizedReportResult> {
     const scope = this.scope(principal, auth, adapter.provider);
     const hash = canonicalQueryHash({ query, timeZone: period?.timeZone ?? "none" });
 
-    const hit = await this.deps.cache.get<NormalizedReportResult>(scope, hash);
+    const hit = bypassCache ? null : await this.deps.cache.get<NormalizedReportResult>(scope, hash);
     if (hit) return this.fromCache(hit.value, hit.fetchedAt, requestId);
 
     // The flight key carries the whole scope: only the same user, connection, property and request ever share a call.
     const flightKey = [scope.userId, scope.provider, scope.connectionId, scope.propertyId, hash].join(":");
     const { promise, joined } = this.flights.run(flightKey, async () => {
-      const raced = await this.deps.cache.get<NormalizedReportResult>(scope, hash);
+      const raced = bypassCache ? null : await this.deps.cache.get<NormalizedReportResult>(scope, hash);
       if (raced) return this.fromCache(raced.value, raced.fetchedAt, requestId);
       return this.fetchAndStore(adapter, query, auth, principal, requestId, period, warnings, scope, hash);
     });
@@ -523,8 +550,9 @@ export class ReportService {
       if (err.message.includes("did not respond in time")) return null; // the deadline is already spent
       return BACKOFF_BASE_MS * 2 ** attempt + Math.floor(random() * BACKOFF_BASE_MS);
     }
-    if ((provider === "gsc" || provider === "bing") && err.code === "PROVIDER_RATE_LIMITED" && err.retryAfterSeconds !== undefined && err.retryAfterSeconds <= MAX_PROVIDER_RETRY_AFTER_SECONDS) {
-      return err.retryAfterSeconds * 1000;
+    if ((provider === "gsc" || provider === "bing") && err.code === "PROVIDER_RATE_LIMITED") {
+      if (err.retryAfterSeconds === undefined) return BACKOFF_BASE_MS * 2 ** attempt + Math.floor(random() * BACKOFF_BASE_MS); // Google often omits Retry-After
+      if (err.retryAfterSeconds <= MAX_PROVIDER_RETRY_AFTER_SECONDS) return err.retryAfterSeconds * 1000;
     }
     return null;
   }
@@ -575,4 +603,79 @@ export function createReportService(
     });
   }
   return createMockReportService(env, overrides);
+}
+
+
+/** The earlier range to compare with: same length right before the range, or the same dates one year back. */
+export function previousRange(startDate: string, endDate: string, mode: "previous_period" | "previous_year"): { startDate: string; endDate: string } {
+  if (mode === "previous_year") return { startDate: shiftYear(startDate, -1), endDate: shiftYear(endDate, -1) };
+  const days = Math.round((Date.parse(`${endDate}T00:00:00Z`) - Date.parse(`${startDate}T00:00:00Z`)) / 86_400_000) + 1;
+  const prevEnd = addDays(startDate, -1);
+  return { startDate: addDays(prevEnd, -(days - 1)), endDate: prevEnd };
+}
+
+function shiftYear(iso: string, years: number): string {
+  const d = new Date(`${iso}T00:00:00Z`);
+  const day = d.getUTCDate();
+  d.setUTCFullYear(d.getUTCFullYear() + years);
+  if (d.getUTCDate() !== day) d.setUTCDate(0); // Feb 29 -> Feb 28
+  return d.toISOString().slice(0, 10);
+}
+
+const pct = (now: number, before: number): number | null => (before > 0 ? Math.round(((now - before) / before) * 1000) / 10 : null);
+const r4 = (n: number) => Math.round(n * 10_000) / 10_000;
+const r2 = (n: number) => Math.round(n * 100) / 100;
+
+/**
+ * Adds previous-range columns to the current rows (matched by their dimension values) and the totals' change.
+ * Position change is current minus previous: a negative number is a better (higher) ranking.
+ */
+export function mergeGscComparison(current: NormalizedReportResult, prev: NormalizedReportResult, dimensions: readonly string[], info: { label: string; startDate: string; endDate: string }): NormalizedReportResult {
+  const warnings = [...current.warnings];
+  const keyOf = (r: Record<string, unknown>) => dimensions.map((d) => String(r[d])).join("\u0000");
+  const matchable = !dimensions.includes("date");
+  const prevByKey = new Map(prev.rows.map((r) => [keyOf(r), r]));
+  let unmatched = 0;
+  const rows = current.rows.map((r) => {
+    if (!matchable) return r;
+    const p = prevByKey.get(keyOf(r));
+    if (!p) {
+      unmatched++;
+      return { ...r, previousClicks: null, clicksChange: null, clicksChangePct: null, previousImpressions: null, impressionsChange: null, impressionsChangePct: null, previousPosition: null, positionChange: null };
+    }
+    const c = Number(r.clicks), i = Number(r.impressions), pc = Number(p.clicks), pi = Number(p.impressions);
+    return {
+      ...r,
+      previousClicks: pc,
+      clicksChange: c - pc,
+      clicksChangePct: pct(c, pc),
+      previousImpressions: pi,
+      impressionsChange: i - pi,
+      impressionsChangePct: pct(i, pi),
+      previousPosition: Number(p.position),
+      positionChange: r2(Number(r.position) - Number(p.position)),
+    };
+  });
+  if (!matchable) warnings.push({ code: "COMPARISON_TOTALS_ONLY", message: "Rows are grouped by date, so they cannot be matched one-to-one with the earlier range. The comparison is shown for the totals only." });
+  if (unmatched > 0) warnings.push({ code: "COMPARISON_ROWS_NOT_FOUND", message: `${unmatched} row(s) had no matching row in ${info.label} (new, or too small to appear in Google's top results), so their previous values are empty, not zero.` });
+
+  const out: NormalizedReportResult = { ...current, rows, warnings };
+  if (current.totals && prev.totals) {
+    const t = current.totals, q = prev.totals;
+    const change = {
+      clicks: Number(t.clicks) - Number(q.clicks),
+      clicksPct: pct(Number(t.clicks), Number(q.clicks)),
+      impressions: Number(t.impressions) - Number(q.impressions),
+      impressionsPct: pct(Number(t.impressions), Number(q.impressions)),
+      ctr: r4(Number(t.ctr) - Number(q.ctr)),
+      position: r2(Number(t.position) - Number(q.position)),
+    };
+    out.comparison = { label: info.label, startDate: info.startDate, endDate: info.endDate, totals: { ...q }, change };
+    const dir = (n: number | null) => (n === null ? "n/a" : `${n > 0 ? "+" : ""}${n}%`);
+    out.summary = `${current.summary ?? ""} Compared with ${info.label} (${info.startDate} to ${info.endDate}): clicks ${dir(change.clicksPct)}, impressions ${dir(change.impressionsPct)}, average position ${change.position < 0 ? "improved" : change.position > 0 ? "worsened" : "unchanged"} by ${Math.abs(change.position)}.`.trim();
+    out.nextStep = "Sort by clicksChange to find the biggest winners and losers.";
+  } else {
+    warnings.push({ code: "COMPARISON_TOTALS_MISSING", message: "Totals were not available for one of the two ranges, so the overall change is not shown." });
+  }
+  return out;
 }

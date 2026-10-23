@@ -119,7 +119,7 @@ describe("predictable output", () => {
     expect(r.isError).toBe(false);
     expect(r.parsed).toMatchObject({ provider: "ga4", rowCountReturned: 3, report: { period: { timeZone: "America/New_York", resolvedFrom: "lastDays" } } });
     const gsc = await call(await as(USER_A), "query_gsc_performance", { propertyId: "sc-domain:example.com", lastDays: 7, limit: 3 });
-    expect(Object.keys(r.parsed).sort()).toEqual(Object.keys(gsc.parsed).filter((k) => k !== "providerMetadata").concat(Object.keys(r.parsed).filter((k) => k === "providerMetadata")).sort());
+    expect(Object.keys(r.parsed).sort()).toEqual(Object.keys(gsc.parsed).filter((k) => !["providerMetadata", "totals", "summary", "nextStep"].includes(k)).concat(Object.keys(r.parsed).filter((k) => k === "providerMetadata")).sort());
   });
 
   it("a repeated report is served from cache and says so", async () => {

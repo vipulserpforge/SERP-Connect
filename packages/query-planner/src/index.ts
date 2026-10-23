@@ -44,7 +44,7 @@ function assertOrdered(startDate: string, endDate: string): void {
 }
 
 /** GSC dates are Pacific Time, retained ~16 months, and the most recent days may be incomplete. */
-export function validateGscDateRange(startDate: string, endDate: string, now: Date = new Date()): DateValidation {
+export function validateGscDateRange(startDate: string, endDate: string, now: Date = new Date(), dataState: "final" | "all" = "final"): DateValidation {
   assertOrdered(startDate, endDate);
   const today = todayInTimeZone(GSC_TIME_ZONE, now);
   const earliest = addMonths(today, -GSC_RETENTION_MONTHS);
@@ -61,10 +61,15 @@ export function validateGscDateRange(startDate: string, endDate: string, now: Da
     });
   }
   const warnings: ReportWarning[] = [];
-  if (endDate >= addDays(today, -2)) {
+  // Finalized data stops GSC_FINAL_LAG_DAYS back, so a range ending there is complete; with fresh data the last days are provisional.
+  const incomplete = dataState === "all" ? endDate >= addDays(today, -GSC_FINAL_LAG_DAYS) : endDate > addDays(today, -GSC_FINAL_LAG_DAYS);
+  if (incomplete) {
     warnings.push({
       code: "RECENT_DATA_INCOMPLETE",
-      message: "The most recent 1-2 days in Search Console may be incomplete or still change.",
+      message:
+        dataState === "all"
+          ? "The most recent 1-2 days include fresh Search Console data that is still provisional and can change."
+          : `Search Console only returns finalized data, which lags about ${GSC_FINAL_LAG_DAYS} days: the range ends after the newest finalized day, so the latest days are missing from the totals.`,
     });
   }
   return { warnings };
@@ -121,7 +126,7 @@ export function stableStringify(value: unknown): string {
 }
 
 /** Bump when canonicalization or result shape changes, so older cached results are never served as current. */
-export const REPORT_RULES_VERSION = 1;
+export const REPORT_RULES_VERSION = 2;
 
 /**
  * Hash of everything that can change a report's content: the canonical request (dates, dimensions, metrics, filters,

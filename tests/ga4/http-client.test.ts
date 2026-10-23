@@ -125,6 +125,20 @@ describe("Data API: metadata and compatibility", () => {
     expect(seen[0]).toMatchObject({ method: "POST", url: "/data/v1beta/properties/123:checkCompatibility" });
     expect(seen[0]!.body).toEqual({ dimensions: [{ name: "itemName" }, { name: "country" }], metrics: [{ name: "sessions" }] });
   });
+
+  it("ignores incompatible verdicts for fields that were not requested", async () => {
+    queue = [
+      {
+        status: 200,
+        body: {
+          dimensionCompatibilities: [{ dimensionMetadata: { apiName: "pagePath" }, compatibility: "COMPATIBLE" }, { dimensionMetadata: { apiName: "itemName" }, compatibility: "INCOMPATIBLE" }],
+          metricCompatibilities: [{ metricMetadata: { apiName: "activeUsers" }, compatibility: "COMPATIBLE" }, { metricMetadata: { apiName: "itemRevenue" }, compatibility: "INCOMPATIBLE" }],
+        },
+      },
+    ];
+    const c = await client().checkCompatibility(TOKEN, "123", { dimensions: ["pagePath"], metrics: ["activeUsers"] });
+    expect(c).toEqual({ incompatibleDimensions: [], incompatibleMetrics: [] });
+  });
 });
 
 describe("Data API: runReport", () => {

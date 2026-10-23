@@ -242,9 +242,13 @@ export class HttpGa4ApiClient implements Ga4ApiClient {
     const body = { dimensions: fields.dimensions.map((name) => ({ name })), metrics: fields.metrics.map((name) => ({ name })) };
     const parsed = compatSchema.safeParse(await this.rest.call("POST", `${this.data}/properties/${propertyId}:checkCompatibility`, accessToken, body, signal));
     if (!parsed.success) throw bad();
+    // The API reports a verdict for every field of the property, not just the requested ones. Fields that merely
+    // clash with the request (but are not in it) must not fail the query, so only the requested names count.
+    const askedDims = new Set(fields.dimensions);
+    const askedMets = new Set(fields.metrics);
     return {
-      incompatibleDimensions: (parsed.data.dimensionCompatibilities ?? []).filter((d) => d.compatibility === "INCOMPATIBLE").map((d) => d.dimensionMetadata.apiName),
-      incompatibleMetrics: (parsed.data.metricCompatibilities ?? []).filter((m) => m.compatibility === "INCOMPATIBLE").map((m) => m.metricMetadata.apiName),
+      incompatibleDimensions: (parsed.data.dimensionCompatibilities ?? []).filter((d) => d.compatibility === "INCOMPATIBLE" && askedDims.has(d.dimensionMetadata.apiName)).map((d) => d.dimensionMetadata.apiName),
+      incompatibleMetrics: (parsed.data.metricCompatibilities ?? []).filter((m) => m.compatibility === "INCOMPATIBLE" && askedMets.has(m.metricMetadata.apiName)).map((m) => m.metricMetadata.apiName),
     };
   }
 

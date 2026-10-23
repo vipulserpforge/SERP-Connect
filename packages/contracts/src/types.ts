@@ -80,6 +80,14 @@ export interface NormalizedReportResult {
   /** True when data is synthetic fixture data, not from a provider. */
   mock: boolean;
   warnings: ReportWarning[];
+  /** Whole-range totals for the same filters, when the provider can report them (Search Console). Row sums can differ. */
+  totals?: Record<string, number | null>;
+  /** Totals of the comparison range and the change against it, when `compareTo` was used. */
+  comparison?: { label: string; startDate: string; endDate: string; totals: Record<string, number | null>; change: Record<string, number | null> };
+  /** Short plain-language reading of the result for a non-technical reader. */
+  summary?: string;
+  /** One suggested follow-up, in plain words. */
+  nextStep?: string;
   /** Safe, provider-supplied facts about the data (time zone, currency, metric types, quota). Never credentials. */
   providerMetadata?: Record<string, unknown>;
   requestId: string;

@@ -72,8 +72,10 @@ describe("happy path through every layer (fake Google)", () => {
     await call(await as("bob"), "query_gsc_performance", gsc(SHARED));
     const a = w.google.callsFor("alice", "searchAnalytics");
     const b = w.google.callsFor("bob", "searchAnalytics");
-    expect(a).toHaveLength(1);
-    expect(b).toHaveLength(1);
+    // One call for the rows and one for the whole-range totals.
+    expect(a).toHaveLength(2);
+    expect(b).toHaveLength(2);
+    expect(new Set(a.map((c) => c.token)).size).toBe(1);
     expect(a[0]!.token).not.toBe(b[0]!.token);
   });
 });

@@ -81,7 +81,7 @@ export function planGscQuery(query: GscQuery): GscPlan {
       searchType: query.type,
       ...(filters.length > 0 && { dimensionFilterGroups: [{ groupType: "and" as const, filters }] }),
       rowLimit: fullFetch ? GSC_MAX_ROW_LIMIT : query.limit,
-      startRow: 0,
+      startRow: fullFetch ? 0 : query.offset,
       dataState: query.dataState,
     },
   };
@@ -96,6 +96,46 @@ export interface NormalizedGsc {
 }
 
 /** Maps Google's positional `keys` onto named dimensions, applies the requested order, and reports gaps. */
+/** Strips `#fragment` from a URL: `/page/#elementor-toc__heading-anchor-0` and `/page/` are the same page. */
+export function stripUrlFragment(url: string): string {
+  const i = url.indexOf("#");
+  return i === -1 ? url : url.slice(0, i);
+}
+
+/**
+ * Merges rows whose `page` differs only by a #fragment (e.g. Elementor table-of-contents anchors) into one row.
+ * Clicks and impressions add up; CTR is recomputed and position is the impression-weighted mean.
+ * Returns how many rows were folded away so the caller can say so.
+ */
+export function mergeFragmentDuplicates(rows: ReportRow[], dimensions: readonly string[]): { rows: ReportRow[]; merged: number } {
+  if (!dimensions.includes("page")) return { rows, merged: 0 };
+  const groups = new Map<string, { row: ReportRow; clicks: number; impressions: number; posWeighted: number; n: number }>();
+  for (const r of rows) {
+    const clean: ReportRow = { ...r, page: stripUrlFragment(String(r.page)) };
+    const key = dimensions.map((d) => String(clean[d])).join("\u0000");
+    const clicks = Number(r.clicks);
+    const impressions = Number(r.impressions);
+    const g = groups.get(key);
+    if (!g) {
+      groups.set(key, { row: clean, clicks, impressions, posWeighted: Number(r.position) * impressions, n: 1 });
+    } else {
+      g.clicks += clicks;
+      g.impressions += impressions;
+      g.posWeighted += Number(r.position) * impressions;
+      g.n++;
+    }
+  }
+  if (groups.size === rows.length) return { rows: rows.map((r) => ({ ...r, page: stripUrlFragment(String(r.page)) })), merged: 0 };
+  const out = [...groups.values()].map((g) => ({
+    ...g.row,
+    clicks: g.clicks,
+    impressions: g.impressions,
+    ctr: round(g.impressions > 0 ? g.clicks / g.impressions : 0, 4),
+    position: round(g.impressions > 0 ? g.posWeighted / g.impressions : Number(g.row.position), 2),
+  }));
+  return { rows: out, merged: rows.length - out.length };
+}
+
 export function normalizeGscResponse(query: GscQuery, plan: GscPlan, response: SearchAnalyticsResponse): NormalizedGsc {
   const warnings: ReportWarning[] = [];
   let completeness: NormalizedGsc["completeness"] = "unknown_or_provider_limited";
@@ -110,10 +150,20 @@ export function normalizeGscResponse(query: GscQuery, plan: GscPlan, response: S
   });
 
   const fetched = rows.length;
+  const dedupe = mergeFragmentDuplicates(rows, query.dimensions);
+  rows = dedupe.rows;
+  if (dedupe.merged > 0) {
+    warnings.push({
+      code: "URL_ANCHOR_DUPLICATES_MERGED",
+      message: `${dedupe.merged} row(s) pointed at the same page with a #fragment (for example #elementor-toc anchors). They were merged into the page without the fragment: clicks and impressions are summed, position is impression-weighted.`,
+    });
+  }
   const dir = query.sortDirection === "asc" ? 1 : -1;
   const keyOf = (r: ReportRow) => query.dimensions.map((d) => String(r[d])).join("\u0000");
   rows.sort((a, b) => dir * (Number(a[query.sortBy]) - Number(b[query.sortBy])) || Number(b.clicks) - Number(a.clicks) || keyOf(a).localeCompare(keyOf(b)));
-  rows = rows.slice(0, query.limit);
+  const sortedCount = rows.length;
+  // With fullFetch Google's page always starts at 0 and we page locally; otherwise Google already skipped `offset` rows.
+  rows = plan.fullFetch ? rows.slice(query.offset, query.offset + query.limit) : rows.slice(0, query.limit);
 
   if (fetched === 0) {
     warnings.push({
@@ -127,7 +177,10 @@ export function normalizeGscResponse(query: GscQuery, plan: GscPlan, response: S
       message: `Google returned its maximum of ${GSC_MAX_ROW_LIMIT} rows (ordered by clicks); the requested order was applied to those rows only, so rows beyond them are not ranked.`,
     });
   } else if (!plan.fullFetch && fetched >= plan.request.rowLimit) {
-    warnings.push({ code: "ROW_LIMIT_REACHED", message: "The row limit was reached; more rows may exist. Narrow the query or raise the limit." });
+    warnings.push({ code: "ROW_LIMIT_REACHED", message: `The row limit was reached; more rows may exist. Ask for the next page with offset=${query.offset + query.limit}, or narrow the query.` });
+  }
+  if (plan.fullFetch && sortedCount > query.offset + query.limit) {
+    warnings.push({ code: "MORE_ROWS_AVAILABLE", message: `${sortedCount - query.offset - query.limit} more row(s) exist beyond this page. Ask for the next page with offset=${query.offset + query.limit}.` });
   }
 
   if (query.dimensions.includes("query")) {
@@ -153,4 +206,40 @@ export function normalizeGscResponse(query: GscQuery, plan: GscPlan, response: S
     }
   }
   return { rows, warnings, completeness };
+}
+
+export interface GscTotals {
+  clicks: number;
+  impressions: number;
+  ctr: number;
+  position: number;
+}
+
+const DIM_LABEL: Record<string, string> = { page: "page", query: "search query", country: "country", device: "device", date: "day", searchAppearance: "search appearance" };
+const fmt = (n: number) => n.toLocaleString("en-US");
+
+/** A short plain-language reading of the result, from the rows and totals actually returned. */
+export function buildGscSummary(query: GscQuery, rows: ReportRow[], totals: GscTotals | null): { summary: string; nextStep: string } {
+  if (rows.length === 0) {
+    return {
+      summary: `Search Console reported no data for ${query.startDate} to ${query.endDate} with these filters.`,
+      nextStep: "Widen the date range or remove a filter, then ask again.",
+    };
+  }
+  const parts: string[] = [];
+  if (totals) {
+    parts.push(`From ${query.startDate} to ${query.endDate} the site got ${fmt(totals.clicks)} clicks from ${fmt(totals.impressions)} impressions (click-through rate ${(totals.ctr * 100).toFixed(1)}%, average position ${totals.position.toFixed(1)}).`);
+  } else {
+    parts.push(`From ${query.startDate} to ${query.endDate}, ${rows.length} row(s) are shown.`);
+  }
+  const dim = query.dimensions.find((d) => d !== "date");
+  const top = [...rows].sort((a, b) => Number(b.clicks) - Number(a.clicks))[0]!;
+  if (dim && String(top[dim] ?? "") !== "") {
+    const share = totals && totals.clicks > 0 ? ` (${Math.round((Number(top.clicks) / totals.clicks) * 100)}% of all clicks)` : "";
+    parts.push(`The ${DIM_LABEL[dim] ?? dim} with the most clicks is ${String(top[dim])}, with ${fmt(Number(top.clicks))}${share}.`);
+  } else if (query.dimensions.includes("date")) {
+    parts.push(`The best day was ${String(top.date)} with ${fmt(Number(top.clicks))} clicks.`);
+  }
+  const nextStep = dim === "page" ? "Pick a page and ask which queries bring it traffic." : dim === "query" ? "Ask which pages rank for the top query, or compare with the previous period." : "Compare with the previous period (compareTo) to see what changed.";
+  return { summary: parts.join(" "), nextStep };
 }

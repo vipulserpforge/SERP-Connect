@@ -165,7 +165,6 @@ describe("controlled retries", () => {
     ["invalid query", new ConnectorException("INVALID_QUERY", "x")],
     ["a non-retryable outage", unavailable(false)],
     ["an unexpected bug", new Error("boom")],
-    ["quota exhaustion without a short retry hint", new ConnectorException("PROVIDER_RATE_LIMITED", "x", { retryable: true })],
     ["quota exhaustion with a long wait", new ConnectorException("PROVIDER_RATE_LIMITED", "x", { retryable: true, retryAfterSeconds: 120 })],
   ])("never retries %s", async (_n, error) => {
     const h = harness();
@@ -175,6 +174,17 @@ describe("controlled retries", () => {
     await expect(h.service.queryGsc(h.principal(USER_A), gscQuery(), R)).rejects.toBeDefined();
     expect(h.gsc.calls).toHaveLength(1);
     expect(h.sleeps).toEqual([]);
+  });
+
+  it("backs off and retries a Search Console 429 that carries no Retry-After, but never retries GA4's", async () => {
+    const h = harness();
+    h.gsc.behave = (call, n) => {
+      if (n === 1) throw new ConnectorException("PROVIDER_RATE_LIMITED", "x", { retryable: true });
+      return h.gsc.ok(call);
+    };
+    await h.service.queryGsc(h.principal(USER_A), gscQuery(), R);
+    expect(h.gsc.calls).toHaveLength(2);
+    expect(h.sleeps).toHaveLength(1);
   });
 
   it("honours a short Retry-After from Search Console, but never retries GA4 quota errors", async () => {
