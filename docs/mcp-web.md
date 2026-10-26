@@ -586,14 +586,78 @@ If it does not help, send Claude the error text. **Never include passwords or ke
 ### Update the website
 Push to `main` on GitHub. **Vercel rebuilds and publishes automatically.** Watch it in the Vercel dashboard → **Deployments**.
 
-### Update the MCP server
-It does **not** update by itself. After you push to `main`:
+### Update the MCP server (deploy the latest changes)
 
-1. Connect: `ssh root@YOUR.VPS.IP`, then `su - serp`.
-2. Run: `bash ~/SERP-Connect/deploy/vps/deploy.sh`
-3. **You should see** `OK: MCP server is running`.
+The MCP server does **not** update by itself. Whenever new code is pushed to `main` (new tools, fixes), do these 6 steps. It takes about 5 minutes. Your VPS is already set up, so you only repeat this short routine.
 
-Always update the website and the MCP server in the same session when a change touches both.
+**Step 1. Make sure the code is on GitHub.**
+In Claude Code in this project, type: **"commit and push all changes to main"**. Wait until it says it is pushed. The VPS downloads from GitHub, so it cannot see changes that are only on your Mac.
+
+**Step 2. Open Terminal on your Mac.**
+Press **Cmd + Space**, type `Terminal`, press **Enter**.
+
+**Step 3. Log in to the VPS.**
+Paste this and press **Enter**:
+
+```
+ssh root@172.93.223.194
+```
+
+Enter your root password when asked (paste it; nothing appears while you do, that is normal), then press **Enter**.
+**You should see** a line ending in `root@mcp:~#`. You are now inside the VPS.
+
+**Step 4. Switch to the app user.**
+
+```
+su - serp
+```
+
+**You should see** the line change to `serp@…$`.
+
+**Step 5. Run the update command.**
+
+```
+bash ~/SERP-Connect/deploy/vps/deploy.sh
+```
+
+Wait 2 to 5 minutes. It prints 5 numbered steps (download the new code, install, build, restart, check). Do not close Terminal until it finishes.
+**You should see** at the end:
+
+```
+OK: MCP server is running ({"status":"ok"})
+```
+
+That is the restart. The new version is now live.
+
+**Step 6. Leave the VPS and test.**
+
+```
+exit
+exit
+```
+
+(The first `exit` leaves the `serp` user, the second leaves the VPS.)
+
+Then check in your browser:
+
+1. Open `https://mcp.visibll.in/healthz`. **You should see** `{"status":"ok"}`.
+2. Open **Claude** → **Settings** → **Connectors** → **SERP Connect**. If the new tools do not appear in a chat, click **Disconnect**, then **Connect** again and approve. Claude only reads the tool list when it connects.
+3. In a new Claude chat, ask: *"Using SERP Connect, show weekly retention for my website."* A real answer means the new GA4 tools work.
+
+**If it only needs a restart (no new code),** do steps 3 and 4, then run `pm2 restart serp-mcp --update-env`, then `pm2 status`. **You should see** `online` next to `serp-mcp`.
+
+**If step 5 fails,** match the message below, or see section 9:
+
+| What you see | What to do |
+|---|---|
+| `Permission denied (publickey)` | The VPS lost its GitHub key. Redo section 5.5, steps 3 and 4 |
+| `did not answer` or `FAIL` at the end | The new version crashed. Run `pm2 logs serp-mcp --lines 50` and send the last lines to Claude (no passwords) |
+| `command not found: pnpm` or `pm2` | You are still `root`. Run `su - serp` first (step 4) |
+| Anything else | Run `pm2 logs serp-mcp --lines 50` and send Claude the text |
+
+**Also reconnect Google if the website shows "needs attention".** Updates do not delete customers' connections, but an expired Google login must be reconnected from the dashboard.
+
+Always update the website and the MCP server in the same session when a change touches both. The website updates itself when you push; the MCP server needs the 6 steps above.
 
 ### Change a setting
 - **Website:** Vercel → Settings → Environment Variables → edit → then **Redeploy**.

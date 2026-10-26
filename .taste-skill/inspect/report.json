@@ -1,0 +1,1636 @@
+{
+ "url": "http://localhost:3463/",
+ "at": "2026-10-23T16:50:16.544Z",
+ "allow": [],
+ "viewports": [
+  {
+   "width": 1440,
+   "height": 900,
+   "load": "load",
+   "screens": 6,
+   "filled": [
+    0.41,
+    0.68,
+    0.48,
+    0.4,
+    0.52,
+    0.7
+   ],
+   "motion": {
+    "elements": 47,
+    "css": 46,
+    "transitions": 0,
+    "scripted": 1,
+    "videos": 0,
+    "playingVideos": 0
+   },
+   "metrics": {
+    "viewport": {
+     "w": 1440,
+     "h": 900
+    },
+    "page": {
+     "height": 4880,
+     "screens": 5.4,
+     "words": 617,
+     "img": 14,
+     "video": 0,
+     "canvas": 0,
+     "svg": 18,
+     "sections": 7,
+     "horizontalOverflow": 0,
+     "overflowCulprits": [],
+     "uiFragments": 5,
+     "uiAbuse": false,
+     "realPictures": 0,
+     "videoCount": 0,
+     "uiPictures": 1,
+     "pictureSamples": [],
+     "blendText": 0,
+     "sideScrollers": 0,
+     "brokenImages": [],
+     "emoji": []
+    },
+    "hero": {
+     "text": "Ask Claude about your SEO data.",
+     "words": 6,
+     "chars": 31,
+     "lines": 2,
+     "size": 60,
+     "vw": 4.2,
+     "font": "Outfit",
+     "weight": 500,
+     "tracking": -0.025,
+     "leading": 1.04,
+     "upper": false,
+     "italic": false,
+     "mono": false,
+     "align": "left",
+     "position": "left",
+     "widthRatio": 0.34,
+     "top": 292,
+     "mixedFonts": [
+      "Outfit",
+      "Playfair Display italic"
+     ],
+     "tag": "h1",
+     "kind": "heading"
+    },
+    "h1": {
+     "text": "Ask Claude about your SEO data.",
+     "words": 6,
+     "lines": 2,
+     "size": 60,
+     "font": "Outfit"
+    },
+    "headings": [
+     {
+      "text": "Ask Claude about your SEO data.",
+      "words": 6,
+      "chars": 31,
+      "lines": 2,
+      "size": 60,
+      "vw": 4.2,
+      "font": "Outfit",
+      "weight": 500,
+      "tracking": -0.025,
+      "leading": 1.04,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.34,
+      "top": 292,
+      "mixedFonts": [
+       "Outfit",
+       "Playfair Display italic"
+      ],
+      "tag": "h1",
+      "kind": "heading"
+     },
+     {
+      "text": "Four tools, one conversation.",
+      "words": 4,
+      "chars": 29,
+      "lines": 1,
+      "size": 48,
+      "vw": 3.3,
+      "font": "Outfit",
+      "weight": 500,
+      "tracking": -0.025,
+      "leading": 1.25,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.53,
+      "top": 947,
+      "mixedFonts": [
+       "Outfit",
+       "Playfair Display italic"
+      ],
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Ask in plain words. Get the table.",
+      "words": 7,
+      "chars": 34,
+      "lines": 1,
+      "size": 48,
+      "vw": 3.3,
+      "font": "Outfit",
+      "weight": 500,
+      "tracking": -0.025,
+      "leading": 1.25,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.53,
+      "top": 1533,
+      "mixedFonts": [
+       "Outfit",
+       "Playfair Display italic"
+      ],
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Up and running in minutes.",
+      "words": 5,
+      "chars": 26,
+      "lines": 1,
+      "size": 48,
+      "vw": 3.3,
+      "font": "Outfit",
+      "weight": 500,
+      "tracking": -0.025,
+      "leading": 1.25,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.53,
+      "top": 2366,
+      "mixedFonts": [
+       "Outfit",
+       "Playfair Display italic"
+      ],
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Built to be safe with your data.",
+      "words": 7,
+      "chars": 32,
+      "lines": 2,
+      "size": 48,
+      "vw": 3.3,
+      "font": "Outfit",
+      "weight": 500,
+      "tracking": -0.025,
+      "leading": 1.25,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.33,
+      "top": 2942,
+      "mixedFonts": [
+       "Outfit",
+       "Playfair Display italic"
+      ],
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Questions, answered.",
+      "words": 2,
+      "chars": 20,
+      "lines": 2,
+      "size": 48,
+      "vw": 3.3,
+      "font": "Outfit",
+      "weight": 500,
+      "tracking": -0.025,
+      "leading": 1.25,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.29,
+      "top": 3470,
+      "mixedFonts": [
+       "Outfit",
+       "Playfair Display italic"
+      ],
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Ready to ask your first question?",
+      "words": 6,
+      "chars": 33,
+      "lines": 1,
+      "size": 48,
+      "vw": 3.3,
+      "font": "Outfit",
+      "weight": 500,
+      "tracking": -0.025,
+      "leading": 1.25,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "center",
+      "position": "center",
+      "widthRatio": 0.47,
+      "top": 4095,
+      "mixedFonts": [
+       "Outfit",
+       "Playfair Display italic"
+      ],
+      "tag": "h2",
+      "kind": "heading"
+     }
+    ],
+    "headingSummary": {
+     "count": 7,
+     "maxLines": 2,
+     "over2Lines": 0,
+     "statements": 0,
+     "centered": 1,
+     "medianWords": 6,
+     "mixedFontHeadings": 7
+    },
+    "type": {
+     "families": [
+      {
+       "family": "Outfit",
+       "share": 0.98,
+       "mono": false
+      },
+      {
+       "family": "Playfair Display",
+       "share": 0.02,
+       "mono": false
+      },
+      {
+       "family": "ui-monospace",
+       "share": 0,
+       "mono": false
+      }
+     ],
+     "familyCount": 3,
+     "sizes": [
+      12,
+      13,
+      14,
+      15,
+      16,
+      18,
+      20,
+      21,
+      24,
+      26,
+      48,
+      60
+     ],
+     "sizeCount": 12,
+     "notLoaded": [],
+     "body": {
+      "font": "Outfit",
+      "size": 16,
+      "leading": 1.63,
+      "weight": 400,
+      "tracking": 0,
+      "contrast": null
+     },
+     "measureChars": 78,
+     "max": {
+      "size": 60,
+      "vw": 4.2,
+      "font": "Outfit",
+      "text": "Ask Claude about your"
+     },
+     "monoShare": 0,
+     "monoProseShare": 0,
+     "monoFamilies": [
+      "ui-monospace"
+     ],
+     "monoSamples": [],
+     "microLabels": 2,
+     "microLabelShare": 0.004,
+     "microSamples": [
+      "Your data",
+      "Your AI"
+     ],
+     "upperShare": 0.01,
+     "centerShare": 0.04,
+     "smallText": 2
+    },
+    "eyebrows": [],
+    "numbered": [],
+    "color": {
+     "bodyBg": "#06100e",
+     "bodyBgHsl": {
+      "h": 168,
+      "s": 0.45,
+      "l": 0.04
+     },
+     "dark": true,
+     "sectionBgs": [],
+     "textColors": [
+      {
+       "color": "#ffffff",
+       "share": 0.94
+      },
+      {
+       "color": "#abdcd6",
+       "share": 0.03
+      },
+      {
+       "color": "#1a0e00",
+       "share": 0.02
+      },
+      {
+       "color": "#ff8f26",
+       "share": 0.01
+      },
+      {
+       "color": "#86efc0",
+       "share": 0
+      }
+     ],
+     "button": {
+      "bg": "#ff7a00",
+      "hsl": {
+       "h": 29,
+       "s": 1,
+       "l": 0.5
+      },
+      "fg": "#1a0e00"
+     },
+     "lowContrast": []
+    },
+    "buttons": {
+     "count": 6,
+     "inHero": 3,
+     "radius": 12,
+     "height": 48,
+     "withShadow": 4,
+     "withGradient": 0,
+     "mono": 0,
+     "upper": 0,
+     "heroLabels": [
+      "Dashboard",
+      "Get started free ↗",
+      "See how it works"
+     ]
+    },
+    "surfaces": {
+     "shadowStatic": 9,
+     "shadowOverlay": 2,
+     "shadowSamples": [
+      "a.btn-primary → rgba(255, 122, 0, 0.3) 0px 6px 24px 0px",
+      "a.btn-primary.!min-h-12 → rgba(255, 122, 0, 0.3) 0px 6px 24px 0px",
+      "div.glass-shape.drift-a → rgba(255, 255, 255, 0.5) 0px 1.5px 0px 0px inset, rgba(0, 0, 0, 0.28) 0px -26px ",
+      "div.glass-shape.drift-b → rgba(255, 255, 255, 0.5) 0px 1.5px 0px 0px inset, rgba(0, 0, 0, 0.28) 0px -26px "
+     ],
+     "gradients": 8,
+     "scrims": 0,
+     "gradientSamples": [
+      "div.glow-orb → radial-gradient(circle, rgba(255, 122, 0, 0.45), rgba(0, 0, 0, 0) 65%)",
+      "div.glass-shape.drift-a → radial-gradient(120% 90% at 16% 6%, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0) 40%), linear-gradient(15",
+      "div.glass-shape.drift-b → radial-gradient(120% 90% at 16% 6%, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0) 40%), linear-gradient(15",
+      "div.glass-panel.w-full → linear-gradient(rgba(15, 36, 34, 0.9), rgba(8, 22, 20, 0.94))"
+     ],
+     "gradientText": 0,
+     "hairlines": 2,
+     "hairlineSamples": [
+      "footer.mt-24.sm:mt-32 1440px",
+      "div 1440px"
+     ],
+     "outlinedBoxes": 12,
+     "dashed": 0,
+     "blurred": 1,
+     "roundedBoxes": 18,
+     "boxRadius": 16,
+     "squareMedia": 0,
+     "roundedMedia": 0,
+     "mediaRadius": 0,
+     "textShadow": 0,
+     "cardRows": [
+      {
+       "count": 4,
+       "iconTopped": false,
+       "rounded": true,
+       "top": 1093
+      },
+      {
+       "count": 3,
+       "iconTopped": false,
+       "rounded": true,
+       "top": 1679
+      },
+      {
+       "count": 3,
+       "iconTopped": false,
+       "rounded": true,
+       "top": 2468
+      }
+     ]
+    },
+    "heroMedia": [],
+    "nav": {
+     "links": 6,
+     "fixed": true,
+     "height": 79,
+     "floatingPill": false,
+     "blur": false
+    },
+    "fontsLoaded": [
+     "outfit",
+     "outfit fallback",
+     "playfair display"
+    ]
+   },
+   "consoleErrors": []
+  },
+  {
+   "width": 768,
+   "height": 1024,
+   "load": "load",
+   "screens": 7,
+   "filled": [
+    0.55,
+    0.83,
+    0.85,
+    0.62,
+    0.53,
+    0.7,
+    0.82
+   ],
+   "motion": {
+    "elements": 47,
+    "css": 46,
+    "transitions": 0,
+    "scripted": 1,
+    "videos": 0,
+    "playingVideos": 0
+   },
+   "metrics": {
+    "viewport": {
+     "w": 768,
+     "h": 1024
+    },
+    "page": {
+     "height": 6257,
+     "screens": 6.1,
+     "words": 610,
+     "img": 14,
+     "video": 0,
+     "canvas": 0,
+     "svg": 18,
+     "sections": 7,
+     "horizontalOverflow": 0,
+     "overflowCulprits": [],
+     "uiFragments": 5,
+     "uiAbuse": false,
+     "realPictures": 0,
+     "videoCount": 0,
+     "uiPictures": 1,
+     "pictureSamples": [],
+     "blendText": 0,
+     "sideScrollers": 0,
+     "brokenImages": [],
+     "emoji": []
+    },
+    "hero": {
+     "text": "Ask Claude about your SEO data.",
+     "words": 6,
+     "chars": 31,
+     "lines": 2,
+     "size": 60,
+     "vw": 7.8,
+     "font": "Outfit",
+     "weight": 500,
+     "tracking": -0.025,
+     "leading": 1.04,
+     "upper": false,
+     "italic": false,
+     "mono": false,
+     "align": "left",
+     "position": "center",
+     "widthRatio": 0.94,
+     "top": 213,
+     "mixedFonts": [
+      "Outfit",
+      "Playfair Display italic"
+     ],
+     "tag": "h1",
+     "kind": "heading"
+    },
+    "h1": {
+     "text": "Ask Claude about your SEO data.",
+     "words": 6,
+     "lines": 2,
+     "size": 60,
+     "font": "Outfit"
+    },
+    "headings": [
+     {
+      "text": "Ask Claude about your SEO data.",
+      "words": 6,
+      "chars": 31,
+      "lines": 2,
+      "size": 60,
+      "vw": 7.8,
+      "font": "Outfit",
+      "weight": 500,
+      "tracking": -0.025,
+      "leading": 1.04,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.94,
+      "top": 213,
+      "mixedFonts": [
+       "Outfit",
+       "Playfair Display italic"
+      ],
+      "tag": "h1",
+      "kind": "heading"
+     },
+     {
+      "text": "Four tools, one conversation.",
+      "words": 4,
+      "chars": 29,
+      "lines": 1,
+      "size": 48,
+      "vw": 6.3,
+      "font": "Outfit",
+      "weight": 500,
+      "tracking": -0.025,
+      "leading": 1.25,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.94,
+      "top": 1334,
+      "mixedFonts": [
+       "Outfit",
+       "Playfair Display italic"
+      ],
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Ask in plain words. Get the table.",
+      "words": 7,
+      "chars": 34,
+      "lines": 1,
+      "size": 48,
+      "vw": 6.3,
+      "font": "Outfit",
+      "weight": 500,
+      "tracking": -0.025,
+      "leading": 1.25,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.94,
+      "top": 2134,
+      "mixedFonts": [
+       "Outfit",
+       "Playfair Display italic"
+      ],
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Up and running in minutes.",
+      "words": 5,
+      "chars": 26,
+      "lines": 1,
+      "size": 48,
+      "vw": 6.3,
+      "font": "Outfit",
+      "weight": 500,
+      "tracking": -0.025,
+      "leading": 1.25,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.94,
+      "top": 3229,
+      "mixedFonts": [
+       "Outfit",
+       "Playfair Display italic"
+      ],
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Built to be safe with your data.",
+      "words": 7,
+      "chars": 32,
+      "lines": 1,
+      "size": 48,
+      "vw": 6.3,
+      "font": "Outfit",
+      "weight": 500,
+      "tracking": -0.025,
+      "leading": 1.25,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.94,
+      "top": 3857,
+      "mixedFonts": [
+       "Outfit",
+       "Playfair Display italic"
+      ],
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Questions, answered.",
+      "words": 2,
+      "chars": 20,
+      "lines": 1,
+      "size": 48,
+      "vw": 6.3,
+      "font": "Outfit",
+      "weight": 500,
+      "tracking": -0.025,
+      "leading": 1.25,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.94,
+      "top": 4673,
+      "mixedFonts": [
+       "Outfit",
+       "Playfair Display italic"
+      ],
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Ready to ask your first question?",
+      "words": 6,
+      "chars": 33,
+      "lines": 2,
+      "size": 48,
+      "vw": 6.3,
+      "font": "Outfit",
+      "weight": 500,
+      "tracking": -0.025,
+      "leading": 1.25,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "center",
+      "position": "center",
+      "widthRatio": 0.81,
+      "top": 5400,
+      "mixedFonts": [
+       "Outfit",
+       "Playfair Display italic"
+      ],
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "SERP Connect",
+      "words": 2,
+      "chars": 12,
+      "lines": 1,
+      "size": 26,
+      "vw": 3.4,
+      "font": "Outfit",
+      "weight": 600,
+      "tracking": -0.025,
+      "leading": 1,
+      "upper": true,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.21,
+      "top": 5926,
+      "tag": "span",
+      "kind": "heading"
+     }
+    ],
+    "headingSummary": {
+     "count": 8,
+     "maxLines": 2,
+     "over2Lines": 0,
+     "statements": 0,
+     "centered": 1,
+     "medianWords": 5,
+     "mixedFontHeadings": 7
+    },
+    "type": {
+     "families": [
+      {
+       "family": "Outfit",
+       "share": 0.98,
+       "mono": false
+      },
+      {
+       "family": "Playfair Display",
+       "share": 0.02,
+       "mono": false
+      },
+      {
+       "family": "ui-monospace",
+       "share": 0,
+       "mono": false
+      }
+     ],
+     "familyCount": 3,
+     "sizes": [
+      12,
+      13,
+      14,
+      15,
+      16,
+      18,
+      20,
+      21,
+      24,
+      26,
+      48,
+      60
+     ],
+     "sizeCount": 12,
+     "notLoaded": [],
+     "body": {
+      "font": "Outfit",
+      "size": 16,
+      "leading": 1.63,
+      "weight": 400,
+      "tracking": 0,
+      "contrast": null
+     },
+     "measureChars": 90,
+     "max": {
+      "size": 60,
+      "vw": 7.8,
+      "font": "Outfit",
+      "text": "Ask Claude about your"
+     },
+     "monoShare": 0,
+     "monoProseShare": 0,
+     "monoFamilies": [
+      "ui-monospace"
+     ],
+     "monoSamples": [],
+     "microLabels": 2,
+     "microLabelShare": 0.004,
+     "microSamples": [
+      "Your data",
+      "Your AI"
+     ],
+     "upperShare": 0.01,
+     "centerShare": 0.04,
+     "smallText": 2
+    },
+    "eyebrows": [],
+    "numbered": [],
+    "color": {
+     "bodyBg": "#06100e",
+     "bodyBgHsl": {
+      "h": 168,
+      "s": 0.45,
+      "l": 0.04
+     },
+     "dark": true,
+     "sectionBgs": [],
+     "textColors": [
+      {
+       "color": "#ffffff",
+       "share": 0.94
+      },
+      {
+       "color": "#abdcd6",
+       "share": 0.03
+      },
+      {
+       "color": "#1a0e00",
+       "share": 0.02
+      },
+      {
+       "color": "#ff8f26",
+       "share": 0.01
+      },
+      {
+       "color": "#86efc0",
+       "share": 0
+      }
+     ],
+     "button": {
+      "bg": "#ff7a00",
+      "hsl": {
+       "h": 29,
+       "s": 1,
+       "l": 0.5
+      },
+      "fg": "#1a0e00"
+     },
+     "lowContrast": []
+    },
+    "buttons": {
+     "count": 7,
+     "inHero": 4,
+     "radius": 12,
+     "height": 48,
+     "withShadow": 4,
+     "withGradient": 0,
+     "mono": 0,
+     "upper": 0,
+     "heroLabels": [
+      "Get started free ↗",
+      "See how it works"
+     ]
+    },
+    "surfaces": {
+     "shadowStatic": 8,
+     "shadowOverlay": 2,
+     "shadowSamples": [
+      "nav.absolute.right-0 → rgba(0, 0, 0, 0.5) 0px 24px 60px 0px",
+      "a.btn-primary → rgba(255, 122, 0, 0.3) 0px 6px 24px 0px",
+      "a.btn-primary.!min-h-12 → rgba(255, 122, 0, 0.3) 0px 6px 24px 0px",
+      "div.glass-shape.drift-a → rgba(255, 255, 255, 0.5) 0px 1.5px 0px 0px inset, rgba(0, 0, 0, 0.28) 0px -26px "
+     ],
+     "gradients": 8,
+     "scrims": 0,
+     "gradientSamples": [
+      "div.glow-orb → radial-gradient(circle, rgba(255, 122, 0, 0.45), rgba(0, 0, 0, 0) 65%)",
+      "div.glass-shape.drift-a → radial-gradient(120% 90% at 16% 6%, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0) 40%), linear-gradient(15",
+      "div.glass-shape.drift-b → radial-gradient(120% 90% at 16% 6%, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0) 40%), linear-gradient(15",
+      "div.glass-panel.w-full → linear-gradient(rgba(15, 36, 34, 0.9), rgba(8, 22, 20, 0.94))"
+     ],
+     "gradientText": 0,
+     "hairlines": 3,
+     "hairlineSamples": [
+      "div.mt-2.grid 294px",
+      "footer.mt-24.sm:mt-32 768px",
+      "div 768px"
+     ],
+     "outlinedBoxes": 13,
+     "dashed": 0,
+     "blurred": 1,
+     "roundedBoxes": 19,
+     "boxRadius": 16,
+     "squareMedia": 0,
+     "roundedMedia": 0,
+     "mediaRadius": 0,
+     "textShadow": 0,
+     "cardRows": [
+      {
+       "count": 4,
+       "iconTopped": false,
+       "rounded": true,
+       "top": 1480
+      },
+      {
+       "count": 3,
+       "iconTopped": false,
+       "rounded": true,
+       "top": 3331
+      }
+     ]
+    },
+    "heroMedia": [],
+    "nav": {
+     "links": 2,
+     "fixed": true,
+     "height": 79,
+     "floatingPill": false,
+     "blur": false
+    },
+    "fontsLoaded": [
+     "outfit",
+     "outfit fallback",
+     "playfair display"
+    ]
+   },
+   "consoleErrors": []
+  },
+  {
+   "width": 390,
+   "height": 844,
+   "load": "load",
+   "screens": 10,
+   "filled": [
+    0.56,
+    0.79,
+    0.81,
+    0.64,
+    0.65,
+    0.64,
+    0.59,
+    0.71,
+    0.73,
+    0.8
+   ],
+   "motion": {
+    "elements": 37,
+    "css": 36,
+    "transitions": 0,
+    "scripted": 1,
+    "videos": 0,
+    "playingVideos": 0
+   },
+   "metrics": {
+    "viewport": {
+     "w": 446,
+     "h": 966
+    },
+    "page": {
+     "height": 7939,
+     "screens": 8.2,
+     "words": 615,
+     "img": 14,
+     "video": 0,
+     "canvas": 0,
+     "svg": 18,
+     "sections": 7,
+     "horizontalOverflow": 0,
+     "overflowCulprits": [],
+     "uiFragments": 5,
+     "uiAbuse": false,
+     "realPictures": 0,
+     "videoCount": 0,
+     "uiPictures": 1,
+     "pictureSamples": [],
+     "blendText": 0,
+     "sideScrollers": 0,
+     "brokenImages": [],
+     "emoji": []
+    },
+    "hero": {
+     "text": "Ask Claude about your SEO data.",
+     "words": 6,
+     "chars": 31,
+     "lines": 2,
+     "size": 41.6,
+     "vw": 9.3,
+     "font": "Outfit",
+     "weight": 500,
+     "tracking": -0.025,
+     "leading": 1.04,
+     "upper": false,
+     "italic": false,
+     "mono": false,
+     "align": "left",
+     "position": "center",
+     "widthRatio": 0.86,
+     "top": 189,
+     "mixedFonts": [
+      "Outfit",
+      "Playfair Display italic"
+     ],
+     "tag": "h1",
+     "kind": "heading"
+    },
+    "h1": {
+     "text": "Ask Claude about your SEO data.",
+     "words": 6,
+     "lines": 2,
+     "size": 41.6,
+     "font": "Outfit"
+    },
+    "headings": [
+     {
+      "text": "SERP Connect",
+      "words": 2,
+      "chars": 12,
+      "lines": 1,
+      "size": 23.6,
+      "vw": 5.3,
+      "font": "Outfit",
+      "weight": 600,
+      "tracking": -0.025,
+      "leading": 1,
+      "upper": true,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.32,
+      "top": 23,
+      "tag": "span",
+      "kind": "heading"
+     },
+     {
+      "text": "Ask Claude about your SEO data.",
+      "words": 6,
+      "chars": 31,
+      "lines": 2,
+      "size": 41.6,
+      "vw": 9.3,
+      "font": "Outfit",
+      "weight": 500,
+      "tracking": -0.025,
+      "leading": 1.04,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.86,
+      "top": 189,
+      "mixedFonts": [
+       "Outfit",
+       "Playfair Display italic"
+      ],
+      "tag": "h1",
+      "kind": "heading"
+     },
+     {
+      "text": "SERP Connect",
+      "words": 2,
+      "chars": 12,
+      "lines": 1,
+      "size": 24,
+      "vw": 5.4,
+      "font": "Playfair Display",
+      "weight": 500,
+      "tracking": 0,
+      "leading": 1.33,
+      "upper": false,
+      "italic": true,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.34,
+      "top": 930,
+      "tag": "p",
+      "kind": "statement"
+     },
+     {
+      "text": "Four tools, one conversation.",
+      "words": 4,
+      "chars": 29,
+      "lines": 2,
+      "size": 30,
+      "vw": 6.7,
+      "font": "Outfit",
+      "weight": 500,
+      "tracking": -0.025,
+      "leading": 1.25,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.78,
+      "top": 1422,
+      "mixedFonts": [
+       "Outfit",
+       "Playfair Display italic"
+      ],
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Ask in plain words. Get the table.",
+      "words": 7,
+      "chars": 34,
+      "lines": 2,
+      "size": 30,
+      "vw": 6.7,
+      "font": "Outfit",
+      "weight": 500,
+      "tracking": -0.025,
+      "leading": 1.25,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.78,
+      "top": 2664,
+      "mixedFonts": [
+       "Outfit",
+       "Playfair Display italic"
+      ],
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Up and running in minutes.",
+      "words": 5,
+      "chars": 26,
+      "lines": 1,
+      "size": 30,
+      "vw": 6.7,
+      "font": "Outfit",
+      "weight": 500,
+      "tracking": -0.025,
+      "leading": 1.25,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.78,
+      "top": 4008,
+      "mixedFonts": [
+       "Outfit",
+       "Playfair Display italic"
+      ],
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Built to be safe with your data.",
+      "words": 7,
+      "chars": 32,
+      "lines": 2,
+      "size": 30,
+      "vw": 6.7,
+      "font": "Outfit",
+      "weight": 500,
+      "tracking": -0.025,
+      "leading": 1.25,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.78,
+      "top": 5165,
+      "mixedFonts": [
+       "Outfit",
+       "Playfair Display italic"
+      ],
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Questions, answered.",
+      "words": 2,
+      "chars": 20,
+      "lines": 1,
+      "size": 30,
+      "vw": 6.7,
+      "font": "Outfit",
+      "weight": 500,
+      "tracking": -0.025,
+      "leading": 1.25,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.78,
+      "top": 6121,
+      "mixedFonts": [
+       "Outfit",
+       "Playfair Display italic"
+      ],
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Ready to ask your first question?",
+      "words": 6,
+      "chars": 33,
+      "lines": 2,
+      "size": 30,
+      "vw": 6.7,
+      "font": "Outfit",
+      "weight": 500,
+      "tracking": -0.025,
+      "leading": 1.25,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "center",
+      "position": "center",
+      "widthRatio": 0.67,
+      "top": 6769,
+      "mixedFonts": [
+       "Outfit",
+       "Playfair Display italic"
+      ],
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "SERP Connect",
+      "words": 2,
+      "chars": 12,
+      "lines": 1,
+      "size": 26,
+      "vw": 5.8,
+      "font": "Outfit",
+      "weight": 600,
+      "tracking": -0.025,
+      "leading": 1,
+      "upper": true,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.35,
+      "top": 7236,
+      "tag": "span",
+      "kind": "heading"
+     }
+    ],
+    "headingSummary": {
+     "count": 10,
+     "maxLines": 2,
+     "over2Lines": 0,
+     "statements": 1,
+     "centered": 1,
+     "medianWords": 4,
+     "mixedFontHeadings": 7
+    },
+    "type": {
+     "families": [
+      {
+       "family": "Outfit",
+       "share": 0.98,
+       "mono": false
+      },
+      {
+       "family": "Playfair Display",
+       "share": 0.02,
+       "mono": false
+      },
+      {
+       "family": "ui-monospace",
+       "share": 0,
+       "mono": false
+      }
+     ],
+     "familyCount": 3,
+     "sizes": [
+      12,
+      13,
+      15,
+      16,
+      18,
+      20,
+      24,
+      26,
+      30,
+      42
+     ],
+     "sizeCount": 10,
+     "notLoaded": [],
+     "body": {
+      "font": "Outfit",
+      "size": 16,
+      "leading": 1.38,
+      "weight": 400,
+      "tracking": 0,
+      "contrast": null
+     },
+     "measureChars": 44,
+     "max": {
+      "size": 41.6,
+      "vw": 9.3,
+      "font": "Outfit",
+      "text": "Ask Claude about your"
+     },
+     "monoShare": 0,
+     "monoProseShare": 0,
+     "monoFamilies": [
+      "ui-monospace"
+     ],
+     "monoSamples": [],
+     "microLabels": 2,
+     "microLabelShare": 0.004,
+     "microSamples": [
+      "Your data",
+      "Your AI"
+     ],
+     "upperShare": 0.01,
+     "centerShare": 0.04,
+     "smallText": 1
+    },
+    "eyebrows": [],
+    "numbered": [],
+    "color": {
+     "bodyBg": "#06100e",
+     "bodyBgHsl": {
+      "h": 168,
+      "s": 0.45,
+      "l": 0.04
+     },
+     "dark": true,
+     "sectionBgs": [],
+     "textColors": [
+      {
+       "color": "#ffffff",
+       "share": 0.94
+      },
+      {
+       "color": "#abdcd6",
+       "share": 0.03
+      },
+      {
+       "color": "#1a0e00",
+       "share": 0.02
+      },
+      {
+       "color": "#ff8f26",
+       "share": 0.01
+      },
+      {
+       "color": "#86efc0",
+       "share": 0
+      }
+     ],
+     "button": {
+      "bg": "#ff7a00",
+      "hsl": {
+       "h": 29,
+       "s": 1,
+       "l": 0.5
+      },
+      "fg": "#1a0e00"
+     },
+     "lowContrast": []
+    },
+    "buttons": {
+     "count": 7,
+     "inHero": 4,
+     "radius": 12,
+     "height": 48,
+     "withShadow": 4,
+     "withGradient": 0,
+     "mono": 0,
+     "upper": 0,
+     "heroLabels": [
+      "Get started free ↗",
+      "See how it works"
+     ]
+    },
+    "surfaces": {
+     "shadowStatic": 8,
+     "shadowOverlay": 2,
+     "shadowSamples": [
+      "nav.absolute.right-0 → rgba(0, 0, 0, 0.5) 0px 24px 60px 0px",
+      "a.btn-primary → rgba(255, 122, 0, 0.3) 0px 6px 24px 0px",
+      "a.btn-primary.!min-h-12 → rgba(255, 122, 0, 0.3) 0px 6px 24px 0px",
+      "div.glass-shape.drift-a → rgba(255, 255, 255, 0.5) 0px 1.5px 0px 0px inset, rgba(0, 0, 0, 0.28) 0px -26px "
+     ],
+     "gradients": 8,
+     "scrims": 0,
+     "gradientSamples": [
+      "div.glow-orb → radial-gradient(circle, rgba(255, 122, 0, 0.45), rgba(0, 0, 0, 0) 65%)",
+      "div.glass-shape.drift-a → radial-gradient(120% 90% at 16% 6%, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0) 40%), linear-gradient(15",
+      "div.glass-shape.drift-b → radial-gradient(120% 90% at 16% 6%, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0) 40%), linear-gradient(15",
+      "div.glass-panel.w-full → linear-gradient(rgba(15, 36, 34, 0.9), rgba(8, 22, 20, 0.94))"
+     ],
+     "gradientText": 0,
+     "hairlines": 3,
+     "hairlineSamples": [
+      "div.mt-2.grid 294px",
+      "footer.mt-24.sm:mt-32 390px",
+      "div 390px"
+     ],
+     "outlinedBoxes": 14,
+     "dashed": 0,
+     "blurred": 1,
+     "roundedBoxes": 21,
+     "boxRadius": 16,
+     "squareMedia": 0,
+     "roundedMedia": 0,
+     "mediaRadius": 0,
+     "textShadow": 0,
+     "cardRows": [
+      {
+       "count": 4,
+       "iconTopped": false,
+       "rounded": true,
+       "top": 1611
+      },
+      {
+       "count": 3,
+       "iconTopped": false,
+       "rounded": true,
+       "top": 2852
+      },
+      {
+       "count": 3,
+       "iconTopped": false,
+       "rounded": false,
+       "top": 3540
+      },
+      {
+       "count": 3,
+       "iconTopped": false,
+       "rounded": true,
+       "top": 4087
+      }
+     ]
+    },
+    "heroMedia": [],
+    "nav": {
+     "links": 2,
+     "fixed": true,
+     "height": 79,
+     "floatingPill": false,
+     "blur": false
+    },
+    "fontsLoaded": [
+     "outfit",
+     "outfit fallback",
+     "playfair display"
+    ]
+   },
+   "consoleErrors": []
+  }
+ ],
+ "findings": [
+  {
+   "level": "WARN",
+   "id": "mixed-font-headline",
+   "width": 1440,
+   "message": "7 headline(s) switch typeface or to italic mid-line (the \"one italic serif word\" move).",
+   "fix": "Set the whole headline in one face. Emphasis comes from the words.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "WARN",
+   "id": "micro-label",
+   "width": 1440,
+   "message": "2 tiny uppercase letter-spaced label(s): \"Your data\", \"Your AI\"",
+   "fix": "Prefer sentence case at body size.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "FAIL",
+   "id": "gradient",
+   "width": 1440,
+   "message": "8 gradient fill(s): div.glow-orb → radial-gradient(circle, rgba(255, 122, 0, 0.45), rgba(0, 0, 0, 0) 65%) | div.glass-shape.drift-a → radial-gradient(120% 90% at 16% 6%, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0) 40%), linear-gradient(15 | div.glass-shape.drift-b → radial-gradient(120% 90% at 16% 6%, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0) 40%), linear-gradient(15",
+   "fix": "Use a flat colour or a real image. The only gradient allowed by default is a neutral scrim over a photo for legibility.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "FAIL",
+   "id": "shadow",
+   "width": 1440,
+   "message": "9 box-shadow(s) on elements at rest: a.btn-primary → rgba(255, 122, 0, 0.3) 0px 6px 24px 0px | a.btn-primary.!min-h-12 → rgba(255, 122, 0, 0.3) 0px 6px 24px 0px | div.glass-shape.drift-a → rgba(255, 255, 255, 0.5) 0px 1.5px 0px 0px inset, rgba(0, 0, 0, 0.28) 0px -26px ",
+   "fix": "Remove. Separate surfaces with a tone step or space. Shadows are for things that really float (menus, dialogs, sticky bars).",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "FAIL",
+   "id": "button-fx",
+   "width": 1440,
+   "message": "Buttons with shadow/glow.",
+   "fix": "Flat fill, one colour.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "FAIL",
+   "id": "hairline",
+   "width": 1440,
+   "message": "2 thin rule(s)/divider line(s): footer.mt-24.sm:mt-32 1440px | div 1440px",
+   "fix": "Delete. Separate with space, a tone change, or scale. Lines are only for real tables and form fields.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "FAIL",
+   "id": "outlined-box",
+   "width": 1440,
+   "message": "12 boxes drawn with a 1px outline.",
+   "fix": "Define a surface by its fill (one tone step from the page) or leave the content unboxed.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "WARN",
+   "id": "card-rows",
+   "width": 1440,
+   "message": "3 rows of identical boxed cards.",
+   "fix": "Vary the composition; not every section is a card grid.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "WARN",
+   "id": "size-count",
+   "width": 1440,
+   "message": "12 different font sizes (12, 13, 14, 15, 16, 18, 20, 21, 24, 26, 48, 60).",
+   "fix": "A page needs about five: display, heading, lead, body, small.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "FAIL",
+   "id": "few-pictures",
+   "width": 1440,
+   "message": "Only 1 picture(s) on the page (0 photographs, footage or raster images, 1 interface fragments). Drawings in SVG do not count.",
+   "fix": "Find real pictures of the subject's world with scripts/assets.mjs (photographs, archival images, maps, engravings, footage), download them to assets/ and give them room: a hero picture, one per section that has a subject, a full-width band. At least four, usually six to twelve."
+  },
+  {
+   "level": "WARN",
+   "id": "no-footage",
+   "width": 1440,
+   "message": "No video anywhere on the page.",
+   "fix": "Look for one honest clip with scripts/assets.mjs --video (the place, the material, the process) and use it as a muted loop with a poster frame. Defend its absence only if no clip fits the subject."
+  },
+  {
+   "level": "WARN",
+   "id": "small-text",
+   "width": 1440,
+   "message": "2 text block(s) under 13px.",
+   "fix": "Nothing meant to be read goes below 13px.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "WARN",
+   "id": "measure",
+   "width": 768,
+   "message": "Longest paragraph runs about 90 characters per line.",
+   "fix": "Cap paragraphs at 45–75 characters (max-width: 60ch)."
+  }
+ ],
+ "images": [
+  {
+   "viewport": "desktop",
+   "width": 1440,
+   "fold": "/Users/vipulchalakh/Downloads/SERP Connect/.taste-skill/inspect/desktop-fold.jpg",
+   "pages": [
+    "/Users/vipulchalakh/Downloads/SERP Connect/.taste-skill/inspect/desktop-page-01.jpg",
+    "/Users/vipulchalakh/Downloads/SERP Connect/.taste-skill/inspect/desktop-page-02.jpg"
+   ]
+  },
+  {
+   "viewport": "tablet",
+   "width": 768,
+   "fold": "/Users/vipulchalakh/Downloads/SERP Connect/.taste-skill/inspect/tablet-fold.jpg",
+   "pages": [
+    "/Users/vipulchalakh/Downloads/SERP Connect/.taste-skill/inspect/tablet-page-01.jpg",
+    "/Users/vipulchalakh/Downloads/SERP Connect/.taste-skill/inspect/tablet-page-02.jpg"
+   ]
+  },
+  {
+   "viewport": "mobile",
+   "width": 390,
+   "fold": "/Users/vipulchalakh/Downloads/SERP Connect/.taste-skill/inspect/mobile-fold.jpg",
+   "pages": [
+    "/Users/vipulchalakh/Downloads/SERP Connect/.taste-skill/inspect/mobile-page-01.jpg",
+    "/Users/vipulchalakh/Downloads/SERP Connect/.taste-skill/inspect/mobile-page-02.jpg"
+   ]
+  }
+ ]
+}
