@@ -23,6 +23,7 @@ import {
 import { newRequestId, type Logger } from "@serp/observability";
 import type { ReportService } from "@serp/reporting";
 import type { ConcurrencyLimiter } from "./limiter.js";
+import { sanitizeToolOutput } from "./untrusted.js";
 
 export interface ToolDeps {
   service: ReportService;
@@ -124,7 +125,10 @@ const SupportedMetricsOutput = z.looseObject({ provider: z.string(), dimensions:
 
 // ---- tool registry -----------------------------------------------------------------------
 
-const success = (data: Record<string, unknown>): ToolResult => ({ content: [{ type: "text", text: JSON.stringify(data) }], structuredContent: data });
+const success = (raw: Record<string, unknown>): ToolResult => {
+  const data = sanitizeToolOutput(raw);
+  return { content: [{ type: "text", text: JSON.stringify(data) }], structuredContent: data };
+};
 const failure = (error: unknown): ToolResult => ({ isError: true, content: [{ type: "text", text: JSON.stringify({ error }) }] });
 
 const READ_ONLY = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true } as const;
