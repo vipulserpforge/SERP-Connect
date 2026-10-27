@@ -13,3 +13,8 @@ allowBuilds:
 # Hostinger runs the build under an older pnpm (via corepack) than the one pinned in package.json.
 # Without this, the nested pnpm calls inside "build:web"/"build:mcp" stop with BAD_PM_VERSION.
 pmOnFail: ignore
+
+# Security: patched transitive versions (pnpm audit). Remove once the SDK depends on them itself.
+overrides:
+  fast-uri: ">=3.1.9"
+  body-parser: ">=2.4.0"

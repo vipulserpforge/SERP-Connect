@@ -11,7 +11,7 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.32.0",
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "@serp/auth": "workspace:*",
     "@serp/contracts": "workspace:*",
     "@serp/credentials": "workspace:*",

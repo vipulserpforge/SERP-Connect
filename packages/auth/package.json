@@ -20,7 +20,7 @@
     "@serp/contracts": "workspace:*",
     "@serp/db": "workspace:*",
     "zod": "catalog:",
-    "jose": "6.2.12"
+    "jose": "6.2.13"
   },
   "devDependencies": {
     "typescript": "catalog:",
