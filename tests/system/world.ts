@@ -1,7 +1,7 @@
 import type { PGlite } from "@electric-sql/pglite";
 import { loadSharedEnv } from "@serp/contracts";
 import { BingConnectionService, ClarityConnectionService, CredentialService, OAuthFlowService, PropertyDiscoveryService, createLiveAdapters } from "@serp/credentials";
-import { PgClarityQuotaStore, PgCredentialRepository, PgReportCache, PgRepository } from "@serp/db";
+import { PgClarityQuotaStore, PgClaritySnapshotStore, PgCredentialRepository, PgReportCache, PgRepository } from "@serp/db";
 import { createLogger } from "@serp/observability";
 import { HttpBingApiClient, HttpBingOAuthClient } from "@serp/provider-bing";
 import { HttpGa4ApiClient } from "@serp/provider-ga4";
@@ -95,6 +95,7 @@ export async function buildWorld() {
     repo,
     cache,
     clarityQuota,
+    claritySnapshots: new PgClaritySnapshotStore(exec),
     logger: createLogger({ level: "error" }),
     now: () => NOW,
     sleep: async (ms) => void sleeps.push(ms),

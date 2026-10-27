@@ -2,9 +2,21 @@ import { authorizeProperty, type Principal } from "@serp/auth";
 import { MemoryReportCache, type CacheScope, type ReportCache } from "@serp/cache";
 import {
   ConnectorException,
+  GetClarityHistorySchema,
   GetClarityInsightsSchema,
   GetClarityQuotaStatusSchema,
+  BING_KEYWORD_REPORTS,
+  BING_QUERY_REPORTS,
+  BING_SETTINGS_REPORTS,
+  BingPresetSchema,
+  BingSettingsSchema,
+  QueryBingKeywordsSchema,
   QueryBingSchema,
+  type BingReportKind,
+  type BingSettingsInput,
+  type QueryBingKeywordsInput,
+  type BingPresetInput,
+  type QueryBingInput,
   isConnectorException,
   GetSupportedMetricsSchema,
   QueryGa4Schema,
@@ -38,18 +50,22 @@ import {
   type ResolvedDates,
 } from "@serp/query-planner";
 import { GA4_EARLIEST_START_DATE, GA4_DIMENSIONS, GA4_METRICS, GA4_PRESET_DEFS, GA4_REALTIME_DIMENSIONS, GA4_REALTIME_METRICS, applyGa4Preset, createGa4Adapter, formatGa4Value, planCohorts, todayInZone, type Ga4Adapter, type Ga4CohortQuery, type Ga4Query, type Ga4RealtimeQuery } from "@serp/provider-ga4";
-import { BING_CAPABILITIES, BING_DATE_SEMANTICS, MockBingApiClient, createBingAdapter, enabledBingCapabilities, type BingQuery } from "@serp/provider-bing";
+import { BING_CAPABILITIES, BING_DATE_SEMANTICS, BING_READ_METHODS_NOT_COVERED, BING_REPORT_META, BING_SUGGESTED_WRITES, LIVE_VERIFIED_REPORTS, SHAPE_UNDOCUMENTED, MockBingApiClient, createBingAdapter, previousWindow, type BingQuery } from "@serp/provider-bing";
 import {
   CLARITY_DAILY_REQUEST_LIMIT,
   CLARITY_DIMENSIONS,
   CLARITY_DOCUMENTED_METRICS,
   CLARITY_MAX_ROWS,
+  CLARITY_REPORT_PRESETS,
+  CLARITY_REPORT_TYPES,
   CLARITY_TIME_SEMANTICS,
   MemoryClarityQuotaStore,
+  shapeClarityReport,
   createClarityAdapter,
   validateClarityDimensions,
   type ClarityQuery,
   type ClarityQuotaStore,
+  type ClaritySnapshotStore,
   type QuotaStatus,
 } from "@serp/provider-clarity";
 import { GSC_DIMENSIONS, GSC_METRICS, createGscAdapter, type GscQuery } from "@serp/provider-gsc";
@@ -72,6 +88,8 @@ export interface ReportServiceDeps {
   cache: ReportCache;
   /** Durable (Postgres) in production; in-process for mock mode and tests. Used for status; the adapter reserves through the same store. */
   clarityQuota: ClarityQuotaStore;
+  /** History of live Clarity pulls. Optional: without it nothing is saved and get_clarity_history reports that. */
+  claritySnapshots?: ClaritySnapshotStore;
   gsc: ReportAdapter<GscQuery>;
   ga4: Ga4Adapter;
   clarity: ReportAdapter<ClarityQuery>;
@@ -101,6 +119,9 @@ export type ReportEnv = Pick<
 >;
 
 type Auth = { property: PropertyRecord; connection: ProviderConnection };
+
+/** What every Bing tool reduces to before it is run: the query_bing_report fields, for any Bing report. */
+type BingRunInput = Omit<QueryBingInput, "report" | "propertyId"> & { propertyId?: string; report: BingReportKind; includeAllSubdomains?: boolean };
 /** How a report window was obtained. Absent for providers whose reports take no date range and were not filtered. */
 type PeriodInfo = Pick<ResolvedDates, "resolvedFrom" | "lastDays" | "timeZone">;
 
@@ -118,6 +139,13 @@ export interface ConnectionStatusEntry {
   /** Bing only: how this connection authenticates. */
   authMethod: ProviderConnection["authMethod"];
   propertyCount: number;
+  /**
+   * False when this provider is switched off on THIS server (PROVIDER_*_ENABLED). The connection can be perfectly healthy and
+   * still not queryable, so "connected" alone must not be read as "works".
+   */
+  providerEnabled: boolean;
+  /** Plain-language reason, present only when something stops this connection from being used. */
+  note: string | null;
 }
 
 export interface PropertySummary {
@@ -178,15 +206,31 @@ export class ReportService {
       this.deps.repo.listConnections(principal.userId),
       this.deps.repo.listProperties(principal.userId),
     ]);
-    return connections.map((c) => ({
-      id: c.id,
-      provider: c.provider,
-      accountLabel: c.accountLabel,
-      status: c.status,
-      lastValidatedAt: c.lastValidatedAt,
-      authMethod: c.authMethod,
-      propertyCount: properties.filter((p) => p.connectionId === c.id).length,
-    }));
+    const e = this.deps.env;
+    return connections.map((c) => {
+      // A Google connection serves Search Console and GA4: it counts as enabled when either is on.
+      const flag = c.provider === "google" ? e.PROVIDER_GSC_ENABLED || e.PROVIDER_GA4_ENABLED : c.provider === "bing" ? e.PROVIDER_BING_ENABLED : e.PROVIDER_CLARITY_ENABLED;
+      const note = !flag
+        ? `The ${c.provider === "google" ? "Google" : c.provider === "bing" ? "Bing" : "Clarity"} connection is saved, but this provider is switched off on the server (PROVIDER_${c.provider === "google" ? "GSC/GA4" : c.provider.toUpperCase()}_ENABLED=false), so its data cannot be queried. The operator must turn it on for the web app and the MCP server and restart both.`
+        : c.status === "needs_attention"
+          ? c.provider === "bing"
+            ? c.authMethod === "api_key"
+              ? "Bing rejected this API key. In Bing Webmaster Tools open Settings > API Access, generate a new key and use Replace key on the dashboard."
+              : "Bing rejected this login. Press Reconnect on the dashboard and sign in to Bing again."
+            : "This connection needs to be reconnected from the dashboard."
+          : null;
+      return {
+        id: c.id,
+        provider: c.provider,
+        accountLabel: c.accountLabel,
+        status: c.status,
+        lastValidatedAt: c.lastValidatedAt,
+        authMethod: c.authMethod,
+        propertyCount: properties.filter((p) => p.connectionId === c.id).length,
+        providerEnabled: Boolean(flag),
+        note,
+      };
+    });
   }
 
   async listProperties(principal: Principal, provider: ProviderKey, connectionId?: string): Promise<PropertySummary[]> {
@@ -295,27 +339,120 @@ export class ReportService {
 
   /**
    * Bing Webmaster reports. Bing's report endpoints take no date range, so any window is applied to the rows it returns; with no
-   * window, everything Bing returned is kept. Cached per user, connection, site and request like every other provider.
+   * window, everything Bing returned is kept (a comparison without a window defaults to the last 28 days). Because Bing sends its
+   * whole series in one answer, the previous period for a comparison comes from the same call: no second request, no extra quota.
+   * Cached per user, connection, site and request like every other provider.
    */
   async queryBing(principal: Principal, rawInput: unknown, requestId: string): Promise<NormalizedReportResult> {
     this.assertEnabled("bing");
-    const input = parseInput(QueryBingSchema, rawInput);
+    const input: QueryBingInput = parseInput(QueryBingSchema, rawInput);
     const auth = await authorizeProperty(this.deps.repo, principal, "bing", input.propertyId);
+    return this.runBingReport(principal, auth, requestId, input);
+  }
+
+  /** The shared tail of every Bing tool: resolves the window, builds the query and runs it through the cache, limits and retries. */
+  private async runBingReport(principal: Principal, auth: Auth, requestId: string, input: BingRunInput, extraWarnings: ReportWarning[] = []): Promise<NormalizedReportResult> {
     const today = this.now().toISOString().slice(0, 10);
+    const dated = BING_REPORT_META[input.report].dated !== "none";
+    let lastDays = input.lastDays;
+    if (input.compare && dated && lastDays === undefined && input.startDate === undefined) lastDays = 28;
     const window =
-      input.lastDays !== undefined
-        ? { startDate: addDays(today, -(input.lastDays - 1)), endDate: today }
+      lastDays !== undefined
+        ? { startDate: addDays(today, -(lastDays - 1)), endDate: today }
         : { startDate: input.startDate ?? null, endDate: input.endDate ?? null };
+    const compare = input.compare && dated && window.startDate !== null && window.endDate !== null ? previousWindow(window.startDate, window.endDate) : null;
+    const sortBy = input.sortBy ?? (["traffic", "query_traffic", "crawl", "query_page_detail", "keyword_stats"].includes(input.report) ? "date" : input.report === "inbound_links" ? "count" : "clicks");
     const query: BingQuery = {
       propertyId: auth.property.externalPropertyId,
       report: input.report,
       ...window,
-      sortBy: input.sortBy ?? (input.report === "queries" ? "clicks" : "date"),
+      compare,
+      aggregate: input.aggregate,
+      sortBy,
       sortDirection: input.sortDirection,
       limit: Math.min(input.limit, this.deps.env.MAX_REPORT_ROWS_HARD_LIMIT),
+      query: input.query ?? null,
+      page: input.page ?? null,
+      url: input.url ?? null,
+      keyword: input.keyword ?? null,
+      country: input.country ?? null,
+      language: input.language ?? null,
+      contains: input.contains ?? null,
+      minImpressions: input.minImpressions ?? null,
+      maxCtr: input.maxCtr ?? null,
+      onlyDeclining: input.onlyDeclining,
+      mergeUrlVariants: input.mergeUrlVariants,
+      feedUrl: input.feedUrl ?? null,
+      pageNumber: input.pageNumber,
+      includeAllSubdomains: input.includeAllSubdomains ?? false,
     };
-    const period = input.lastDays !== undefined ? { resolvedFrom: "lastDays" as const, lastDays: input.lastDays, timeZone: "UTC" } : input.startDate !== undefined ? { resolvedFrom: "explicit" as const, timeZone: "UTC" } : null;
-    return this.runReport(this.deps.bing, query, auth, principal, requestId, period, []);
+    const period = lastDays !== undefined ? { resolvedFrom: "lastDays" as const, lastDays, timeZone: "UTC" } : input.startDate !== undefined ? { resolvedFrom: "explicit" as const, timeZone: "UTC" } : null;
+    const extra: ReportWarning[] = [...extraWarnings];
+    if (input.compare && !dated) extra.push({ code: "COMPARISON_NOT_APPLICABLE", message: "This report is a snapshot without dates, so there is no previous period to compare with." });
+    if (input.compare && input.lastDays === undefined && input.startDate === undefined && dated) extra.push({ code: "WINDOW_DEFAULTED", message: "No dates were given, so the comparison uses the last 28 days against the 28 days before." });
+    return this.runReport(this.deps.bing, query, auth, principal, requestId, period, extra);
+  }
+
+  private static readonly BING_BASE = { compare: false, aggregate: true, onlyDeclining: false, mergeUrlVariants: false, sortDirection: "desc" as const, pageNumber: 0 };
+
+  /** Site configuration at Bing (blocks, country, parameters, roles, quotas). Same checks, cache and limits as every Bing report. */
+  async queryBingSettings(principal: Principal, rawInput: unknown, requestId: string): Promise<NormalizedReportResult> {
+    this.assertEnabled("bing");
+    const input: BingSettingsInput = parseInput(BingSettingsSchema, rawInput);
+    const auth = await authorizeProperty(this.deps.repo, principal, "bing", input.propertyId);
+    return this.runBingReport(principal, auth, requestId, { ...ReportService.BING_BASE, propertyId: input.propertyId, report: input.report, limit: input.limit, contains: input.contains, includeAllSubdomains: input.includeAllSubdomains });
+  }
+
+  /**
+   * Market-wide Bing keyword data. It needs no site, but the cache, ownership and connection-status checks are per property, so
+   * one of the user's own enabled Bing sites (the given one, else the first) carries the request. No other user's site is reachable.
+   */
+  async queryBingKeywords(principal: Principal, rawInput: unknown, requestId: string): Promise<NormalizedReportResult> {
+    this.assertEnabled("bing");
+    const input: QueryBingKeywordsInput = parseInput(QueryBingKeywordsSchema, rawInput);
+    let propertyId = input.propertyId;
+    if (propertyId === undefined) {
+      const mine = (await this.deps.repo.listProperties(principal.userId)).filter((p) => p.provider === "bing" && p.enabledForMcp).sort((a, b) => a.externalPropertyId.localeCompare(b.externalPropertyId));
+      if (mine.length === 0) {
+        throw new ConnectorException("PROPERTY_NOT_CONNECTED", "No Bing site is connected and enabled for this account, and Bing keyword lookups go through a connected Bing account.", {
+          provider: "bing",
+          suggestedAction: "Connect Bing on the dashboard and turn on at least one site, then try again.",
+        });
+      }
+      propertyId = mine[0]!.externalPropertyId;
+    }
+    const auth = await authorizeProperty(this.deps.repo, principal, "bing", propertyId);
+    const extra: ReportWarning[] = [];
+    let { startDate, endDate, lastDays } = input;
+    // GetKeyword and GetRelatedKeywords require a period; GetKeywordStats takes none and is filtered here like the other reports.
+    if (input.report !== "keyword_stats" && lastDays === undefined && startDate === undefined) {
+      lastDays = 30;
+      extra.push({ code: "WINDOW_DEFAULTED", message: "No dates were given, so Bing was asked for the last 30 days." });
+    }
+    return this.runBingReport(principal, auth, requestId, { ...ReportService.BING_BASE, propertyId, report: input.report, keyword: input.keyword, country: input.country, language: input.language, startDate, endDate, lastDays, limit: input.limit }, extra);
+  }
+
+  /** The curated Bing questions. Each is a query_bing_report call with sensible defaults, so it shares the cache, limits and checks. */
+  async queryBingPreset(principal: Principal, rawInput: unknown, requestId: string): Promise<NormalizedReportResult> {
+    const p: BingPresetInput = parseInput(BingPresetSchema, rawInput);
+    const base = { propertyId: p.propertyId, limit: p.limit };
+    const days = p.lastDays;
+    switch (p.preset) {
+      case "top_queries":
+        return this.queryBing(principal, { ...base, report: "queries", lastDays: days ?? 28, sortBy: "impressions" }, requestId);
+      case "top_pages":
+        return this.queryBing(principal, { ...base, report: "pages", lastDays: days ?? 28, sortBy: "clicks" }, requestId);
+      case "low_ctr_queries":
+        return this.queryBing(principal, { ...base, report: "queries", lastDays: days ?? 28, sortBy: "impressions", minImpressions: p.minImpressions ?? 100, maxCtr: p.maxCtr ?? 0.02 }, requestId);
+      case "declining_pages":
+        return this.queryBing(principal, { ...base, report: "pages", lastDays: days ?? 14, compare: true, onlyDeclining: true, sortBy: "clicksChange", sortDirection: "asc" }, requestId);
+      case "crawl_problems":
+        return this.queryBing(principal, { ...base, report: "crawl_problems" }, requestId);
+      case "top_inbound_links":
+        return this.queryBing(principal, { ...base, report: "inbound_links", sortBy: "count" }, requestId);
+      case "sitemap_status":
+        return this.queryBing(principal, { ...base, report: "sitemaps" }, requestId);
+    }
   }
 
   /** Validates and authorizes a Clarity request and derives its cache identity. Makes no provider call. */
@@ -325,7 +462,32 @@ export class ReportService {
     validateClarityDays(input.numOfDays);
     validateClarityDimensions(input.dimensions);
     const auth = await authorizeProperty(this.deps.repo, principal, "clarity", input.propertyId);
-    return { input, auth, scope: this.scope(principal, auth, "clarity"), hash: canonicalQueryHash({ query: input, timeZone: "UTC" }) };
+    // Cache identity is (project, numOfDays, dimensions) only: presets and row limits are views over the same saved data.
+    const call = { propertyId: input.propertyId, numOfDays: input.numOfDays, dimensions: input.dimensions, limit: input.limit };
+    return { input: call, auth, scope: this.scope(principal, auth, "clarity"), hash: canonicalQueryHash({ query: { numOfDays: input.numOfDays, dimensions: input.dimensions }, timeZone: "UTC" }) };
+  }
+
+  /**
+   * The tidy Clarity report used by the MCP tool: resolves a report type to dimensions, reuses the cache (6h) and the durable
+   * daily budget through getClarityInsights, then adds data age, UTC window, quota and warnings.
+   */
+  async getClarityReport(principal: Principal, rawInput: unknown, requestId: string): Promise<Record<string, unknown>> {
+    const parsed = parseInput(GetClarityInsightsSchema, rawInput);
+    if (parsed.reportType && parsed.dimensions.length > 0) {
+      throw new ConnectorException("INVALID_QUERY", "Use either reportType or dimensions, not both.", { provider: "clarity", suggestedAction: `reportType choices: ${CLARITY_REPORT_TYPES.join(", ")}.` });
+    }
+    const dimensions = parsed.reportType ? CLARITY_REPORT_PRESETS[parsed.reportType].dimensions : parsed.dimensions;
+    const result = await this.getClarityInsights(principal, { propertyId: parsed.propertyId, numOfDays: parsed.numOfDays, dimensions, limit: parsed.limit }, requestId);
+    const q = await this.getClarityQuotaStatus(principal, parsed.propertyId);
+    return shapeClarityReport({
+      result,
+      reportType: parsed.reportType ?? (dimensions.length === 0 ? "overview" : null),
+      dimensions,
+      numOfDays: parsed.numOfDays,
+      limit: parsed.limit,
+      quota: { usedToday: q.quota.appTrackedUsed, remainingToday: q.quota.localRemaining, dailyBudgetForThisApp: q.quota.localBudget, resetsAtUtc: q.quota.window.end },
+      now: this.now(),
+    });
   }
 
   /**
@@ -348,6 +510,12 @@ export class ReportService {
         const result = await this.deps.clarity.query(input, this.context(principal, auth, requestId));
         result.cache = { hit: false, ageSeconds: 0 };
         await this.deps.cache.set(scope, hash, result, ttlSeconds("clarity", null, this.now(), { defaultSeconds: this.deps.env.REPORT_CACHE_DEFAULT_TTL_SECONDS }), { rowCount: result.rowCountReturned });
+        // History is best-effort: a failed save must never fail a report the user already paid quota for. Demo data is not history.
+        if (!result.mock && this.deps.claritySnapshots) {
+          await this.deps.claritySnapshots
+            .save({ userId: principal.userId, connectionId: auth.connection.id, projectKey: auth.property.externalPropertyId, numOfDays: input.numOfDays, dimensions: input.dimensions, result })
+            .catch((err: unknown) => this.deps.logger.warn("clarity.snapshot_failed", { requestId, err }));
+        }
         this.deps.logger.info("report.executed", { provider: "clarity", requestId, rows: result.rowCountReturned, mock: result.mock });
         return result;
       } catch (err) {
@@ -368,6 +536,42 @@ export class ReportService {
       }
     });
     return { ...this.copy(await promise), requestId };
+  }
+
+  /**
+   * Earlier live pulls for one project, newest first, as the same tidy report. Reads saved rows only: never calls Clarity and
+   * never touches the quota. This is the only way to see more than Clarity's own 3 days.
+   */
+  async getClarityHistory(principal: Principal, rawInput: unknown): Promise<Record<string, unknown>> {
+    this.assertEnabled("clarity");
+    const parsed = parseInput(GetClarityHistorySchema, rawInput);
+    const auth = await authorizeProperty(this.deps.repo, principal, "clarity", parsed.propertyId);
+    if (parsed.reportType && parsed.dimensions.length > 0) {
+      throw new ConnectorException("INVALID_QUERY", "Use either reportType or dimensions, not both.", { provider: "clarity" });
+    }
+    const dimensions = parsed.reportType ? CLARITY_REPORT_PRESETS[parsed.reportType].dimensions : parsed.dimensions;
+    const store = this.deps.claritySnapshots;
+    if (!store) {
+      throw new ConnectorException("PROVIDER_CAPABILITY_UNAVAILABLE", "Clarity history is not stored on this server (no database).", { provider: "clarity" });
+    }
+    const snaps = await store.list(principal.userId, auth.property.externalPropertyId, { dimensions, limit: parsed.limit });
+    const q = await this.deps.clarityQuota.status(auth.property.externalPropertyId, this.now());
+    const quota = { usedToday: q.appTrackedUsed, remainingToday: q.localRemaining, dailyBudgetForThisApp: q.localBudget, resetsAtUtc: q.window.end };
+    return {
+      provider: "clarity",
+      property: { id: auth.property.externalPropertyId, name: auth.property.displayName },
+      reportType: parsed.reportType ?? (dimensions.length === 0 ? "overview" : "custom"),
+      dimensions,
+      snapshotCount: snaps.length,
+      note: "Each entry is a live pull saved at pulledAt. Pulls are only made when someone asks a question, so there can be gaps. Windows of 1-3 days from different pulls overlap; compare them as snapshots, not as daily totals. Reading history uses no Clarity quota.",
+      snapshots: snaps.map((s) => ({
+        snapshotId: s.id,
+        pulledAt: s.pulledAt,
+        report: shapeClarityReport({ result: { ...s.result, cache: { hit: true, ageSeconds: Math.max(0, Math.round((this.now().getTime() - Date.parse(s.pulledAt)) / 1000)) } }, reportType: parsed.reportType ?? null, dimensions: s.dimensions, numOfDays: s.numOfDays, limit: 10, quota, now: this.now() }),
+      })),
+      warnings: snaps.length === 0 ? [{ code: "NO_HISTORY", message: "No pulls of this shape have been saved yet. History starts with the next live pull." }] : [],
+      quota,
+    };
   }
 
   /** Saved Clarity data only. Never calls Clarity and never touches the quota, so a page view is always free. */
@@ -395,6 +599,11 @@ export class ReportService {
       cacheTtlSeconds: ttlSeconds("clarity", null, this.now(), { defaultSeconds: this.deps.env.REPORT_CACHE_DEFAULT_TTL_SECONDS }),
       quota,
       notes: [
+        quota.localRemaining === 0
+          ? `No fresh Clarity requests left today: only saved results (kept ${ttlSeconds("clarity", null, this.now(), { defaultSeconds: this.deps.env.REPORT_CACHE_DEFAULT_TTL_SECONDS }) / 3600}h) are served until ${quota.window.end} UTC.`
+          : quota.localRemaining <= 2
+            ? `LOW: ${quota.localRemaining} fresh request(s) left today (resets ${quota.window.end} UTC). Use saved results where possible.`
+            : `${quota.localRemaining} fresh request(s) left today (resets ${quota.window.end} UTC).`,
         "Usage is counted by this application only. Clarity does not expose an authoritative counter, so other uses of the same token are not included.",
         "The reset time is not documented by Clarity; this app assumes the UTC calendar day.",
         "Failed calls are counted as used, because it is not documented whether Clarity counts them.",
@@ -425,6 +634,8 @@ export class ReportService {
           provider,
           dimensions: [...CLARITY_DIMENSIONS],
           metrics: [...CLARITY_DOCUMENTED_METRICS],
+          reportTypes: Object.fromEntries(CLARITY_REPORT_TYPES.map((t) => [t, { dimensions: CLARITY_REPORT_PRESETS[t].dimensions, answers: CLARITY_REPORT_PRESETS[t].answers }])),
+          outputFields: ["sessions", "botSessions", "distinctUsers", "pagesPerSession", "avgScrollDepthPercent", "totalTimeSeconds", "activeTimeSeconds", "rageClick*", "deadClick*", "quickback*", "errorClick*", "scriptError*", "excessiveScroll*"],
           limits: { numOfDays: [1, 2, 3], maxDimensions: 3, maxRows: CLARITY_MAX_ROWS, requestsPerProjectPerDay: CLARITY_DAILY_REQUEST_LIMIT, dateSemantics: CLARITY_TIME_SEMANTICS },
           notes: [
             "Clarity measures on-site behaviour (sessions, engagement, clicks, scrolling, errors). It does not provide search rankings, impressions or organic clicks: use Search Console for those and GA4 for analytics.",
@@ -437,17 +648,43 @@ export class ReportService {
         this.assertEnabled("bing");
         return {
           provider,
-          dimensions: ["date", "query"],
-          metrics: ["clicks", "impressions", "avgClickPosition", "avgImpressionPosition", "crawledPages", "crawlErrors", "inIndex", "inLinks", "code2xx", "code301", "code302", "code4xx", "code5xx", "allOtherCodes", "blockedByRobotsTxt", "containsMalware"],
-          reports: enabledBingCapabilities()
-            .filter((c) => c.id !== "sites")
-            .map((c) => ({ report: c.id, bingMethod: c.endpoint, fields: c.responseFields, freshness: c.freshness })),
+          dimensions: ["date", "query", "page", "url"],
+          metrics: ["clicks", "impressions", "ctr", "avgPosition", "avgClickPosition", "position", "count", "crawledPages", "crawlErrors", "inIndex", "inLinks", "code2xx", "code301", "code302", "code4xx", "code5xx", "allOtherCodes", "blockedByRobotsTxt", "containsMalware", "urlCount", "broadImpressions"],
+          tools: {
+            query_bing_report: "Performance, index, links, crawl and sitemaps for one site.",
+            get_bing_site_settings: "How the site is configured at Bing: blocks, country, URL parameters, connected pages, site moves, access roles, quotas.",
+            query_bing_keywords: "Market-wide Bing keyword volume and related keywords (not tied to a site).",
+            get_bing_insights: "Ready-made questions built on query_bing_report.",
+            list_bing_sites: "The Bing sites you connected.",
+          },
+          reports: Object.entries(BING_REPORT_META).map(([report, m]) => ({
+            report,
+            bingMethod: m.endpoint,
+            tools: [
+              ...((BING_QUERY_REPORTS as readonly string[]).includes(report) ? ["query_bing_report"] : []),
+              ...((BING_SETTINGS_REPORTS as readonly string[]).includes(report) ? ["get_bing_site_settings"] : []),
+              ...((BING_KEYWORD_REPORTS as readonly string[]).includes(report) ? ["query_bing_keywords"] : []),
+            ],
+            granularity: m.dated === "none" ? "snapshot" : m.dated,
+            dimensions: m.dimensions,
+            metrics: m.metrics,
+            freshness: m.freshness,
+            verifiedLive: LIVE_VERIFIED_REPORTS.has(report as never),
+            shape: SHAPE_UNDOCUMENTED.has(report as never) ? "unverified" : "documented",
+          })),
+          presets: ["top_queries", "top_pages", "low_ctr_queries", "declining_pages", "crawl_problems", "top_inbound_links", "sitemap_status"],
+          notCovered: BING_READ_METHODS_NOT_COVERED,
+          suggestedWritesNotBuilt: BING_SUGGESTED_WRITES,
           disabledReports: BING_CAPABILITIES.filter((c) => !c.enabled && c.status === "unverified").map((c) => ({ report: c.id, reason: c.note })),
           limits: { maxRows: this.deps.env.MAX_REPORT_ROWS_HARD_LIMIT, dateSemantics: BING_DATE_SEMANTICS, quota: "Bing documents no numeric request limit; it may answer with a throttling error, which is reported as such." },
           notes: [
             "These are Bing's own numbers. Bing counts clicks, impressions and positions differently from Google Search Console: never add them together or treat them as the same measure.",
-            "Bing's report endpoints take no date range. This server applies startDate/endDate/lastDays to the rows Bing returns; with none given you get everything Bing returned, newest first.",
-            "The query report is documented as updated weekly and does not say which queries it includes.",
+            "Bing's report endpoints take no date range. This server applies startDate/endDate/lastDays to the rows Bing returns; compare=true adds the previous period of the same length from the same answer.",
+            "Queries and pages are reported weekly (rows are dated by week), traffic and crawl statistics daily. Recent days are normally missing.",
+            "The public Bing API has no country, device or search-appearance breakdown, although the Bing Webmaster web UI offers them.",
+            "Every result carries providerMetadata.pagination (rows found, rows returned, hasMore, a hint to narrow) and providerMetadata.granularity (daily, weekly or snapshot). The default limit is 100.",
+            "Keyword tools (query_bing_keywords) are Bing-wide market data, not your site's traffic. Country and language values are not documented by Bing; defaults are us and en-US.",
+            "Reports marked verifiedLive:false follow Microsoft's published format but have not been checked against a live account yet.",
             "A missing value is not zero. An empty result means Bing reported nothing.",
           ],
         };

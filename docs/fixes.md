@@ -83,7 +83,7 @@ grep -c '^CREDENTIAL_FINGERPRINT_KEY=' .env.local
    pm2 status
    ```
    `serp-mcp` must say **online**. If not: `pm2 logs serp-mcp --lines 50`.
-
+   
 ---
 
 ## 4. Test the fix

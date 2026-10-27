@@ -52,7 +52,7 @@ export class LiveClarityAdapter implements ClarityAdapter {
 
     const reservation = await quota.reserve({ projectKey: ctx.property.externalPropertyId, userId: ctx.userId, connectionId: ctx.connection.id, now: now() });
     if (!reservation.allowed) {
-      throw exhausted(`This app's daily Clarity request budget for this project (${reservation.localBudget}) is used up.`);
+      throw exhausted(`This app's daily Clarity request budget for this project (${reservation.localBudget} of Clarity's 10) is used up. Saved results still work; fresh data returns after 00:00 UTC.`);
     }
 
     let body: unknown;
@@ -90,21 +90,21 @@ export class LiveClarityAdapter implements ClarityAdapter {
     switch (err.kind) {
       case "unauthorized":
         await hooks.onAuthRejected(ctx, "AUTH_EXPIRED");
-        throw new ConnectorException("AUTH_EXPIRED", "Clarity no longer accepts this token. It may be invalid, expired or replaced.", {
+        throw new ConnectorException("AUTH_EXPIRED", "Clarity rejected the token (401). It is wrong, expired, or was replaced by a newer one.", {
           provider: "clarity",
           suggestedAction: "In Clarity, generate a new token (Settings → Data Export) and reconnect it from the dashboard.",
         });
       case "forbidden":
         await hooks.onAuthRejected(ctx, "FORBIDDEN");
-        throw new ConnectorException("FORBIDDEN", "Clarity says this token is not allowed to export this data.", {
+        throw new ConnectorException("FORBIDDEN", "Clarity says this token is not allowed to export data for this project (403).", {
           provider: "clarity",
           suggestedAction: "Ask a Clarity project admin to generate the token, then reconnect it.",
         });
       case "quota":
         await hooks.onRateLimited(ctx);
-        throw exhausted("Clarity reports that this project's daily request limit is used up.");
+        throw exhausted("Clarity says this project has used its 10 requests for today (429). Saved results still work; fresh data returns after 00:00 UTC.");
       case "invalid_request":
-        throw new ConnectorException("INVALID_QUERY", "Clarity rejected the request parameters.", { provider: "clarity" });
+        throw new ConnectorException("INVALID_QUERY", "Clarity rejected the request (400): the number of days or a dimension was not accepted. Use 1, 2 or 3 days and at most 3 listed dimensions.", { provider: "clarity" });
       case "bad_response":
         throw new ConnectorException("PROVIDER_UNAVAILABLE", "Clarity returned a response in an unexpected format.", { provider: "clarity" });
       default:

@@ -6,3 +6,4 @@ export * from "./errors.js";
 export * from "./adapter.js";
 export * from "./mock-client.js";
 export * from "./discovery.js";
+export * from "./normalize.js";

@@ -274,3 +274,29 @@ Tests (all mocked; 779 pass in total, 106 are Bing-specific): API client, dates,
 Not verified live / open limitations: refresh `grant_type` (docs contradict), API-key vs OAuth host acceptance, real response shapes, query row volume, no token-revocation endpoint at Bing, no numeric quota published. Remaining manual steps: create a Bing API key or OAuth client yourself, run `pnpm bing:check --yes`, test Connect with Bing and token renewal, then enable the provider. Nothing is committed or pushed.
 
 **Update (19 Oct 2026):** the owner reported that `pnpm bing:check --yes` passed with their own Bing API key. That verifies the **API-key path** (list sites + traffic/query/crawl reads) for that one account. Still unverified live: "Connect with Bing" (OAuth), token renewal, and the OAuth host/grant questions in `docs/BING.md`.
+
+## Phase 10b: Bing audit and extension (26 Oct 2026)
+
+Root cause of "Bing is disabled on this server": `PROVIDER_BING_ENABLED` was missing from `web.env`/`mcp.env` (missing = `false`) while the account itself was connected. `get_connection_status` now returns `providerEnabled` and a plain-English `note`, so "connected" can no longer hide a switched-off provider.
+
+Added (read-only): pages, query/page drill-downs, crawl issues, blocked URLs, inbound links, URL links, sitemaps, URL info/traffic, submission quota, keyword stats; `get_bing_insights` presets; period comparison; CTR/average position; URL-variant merging; summary, totals, warnings and next step in every answer. Not available in Microsoft's API: country, device and search-appearance breakdowns. Full matrix and the list of uncovered methods: `docs/BING.md`.
+
+Tests: 1,003 pass (about 220 added in this phase), all against mocks. **Not verified against the real Bing API**: the new reports (they say so in `warnings`) and OAuth login/renewal. Run `pnpm bing:check --yes --show-rows` with a key in `.env.local` to confirm.
+
+## Phase 10c: Bing Webmaster expansion (27 Oct 2026)
+
+Bing module only; nothing changed for Search Console, GA4, Clarity or auth. Shared files touched in their Bing sections only: `packages/contracts/src/schemas.ts`, `packages/reporting/src/index.ts`, `apps/mcp-server/src/server.ts`.
+
+Added (all read-only): 15 more Bing methods (`GetQueryTrafficStats`, `GetChildrenUrlInfo`, `GetChildrenUrlTrafficInfo`, `GetCrawlSettings`, `GetFeedDetails`, `GetDeepLinkBlocks`, `GetActivePagePreviewBlocks`, `GetCountryRegionSettings`, `GetQueryParameters`, `GetConnectedPages`, `GetSiteMoves`, `GetSiteRoles`, `GetContentSubmissionQuota`, `GetKeyword`, `GetRelatedKeywords`); five new `query_bing_report` reports; new tools `get_bing_site_settings` and `query_bing_keywords`; `providerMetadata.pagination` and `granularity` on every Bing answer (default limit 100); `get_supported_metrics` lists every report with its tool, granularity, shape and live status plus the write actions that were deliberately not built. Delegation codes and ownership codes never leave the parser.
+
+Live test on one real property (27 Oct 2026, `pnpm bing:check --yes`): 31 of 32 methods answered. `GetSiteMoves` returns HTTP 404. The live test also found that Bing rejects the JSON-quoted arguments from Microsoft's samples (now sent bare) and that the keyword methods need ISO dates; the details are in `docs/BING.md`.
+
+Tests: 1,038 pass (35 added). Mock tests cannot prove what Bing really sends; the live table can, and it is why the argument encoding changed. Still not tested live: OAuth login and renewal, and the properties-with-data cases for the methods that answered with empty lists.
+
+Not committed or pushed.
+
+## Phase 10d: Clarity optimization (27 Oct 2026)
+
+Clarity-only. `get_clarity_insights` now takes a `reportType` (overview, by_device, by_country, by_source, by_channel, by_page, frustration_by_page, by_browser_os) and returns a tidy report: merged rows, numbers, UTC window, live/cache label, data age, quota left, LOW_QUOTA and cache-only warnings, 1,000-row truncation flag. Cache key is now (project, numOfDays, dimensions). Plain-language 400/401/403/429 messages. `get_supported_metrics` (Clarity section) lists the report types. Tests: 1,045 pass, using 3 real responses as fixtures. 3 live Clarity calls were used. Snapshot history added (option 1): migration `20261027100000_clarity_snapshots.sql`, tool `get_clarity_history`; 1,049 tests pass. The migration must be applied to Supabase before release.
+
+Not committed or pushed.

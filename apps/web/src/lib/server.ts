@@ -6,6 +6,7 @@ import {
   MOCK_USER_A_ID,
   MockRepository,
   PgClarityQuotaStore,
+  PgClaritySnapshotStore,
   PgCredentialRepository,
   PgReportCache,
   PgRepository,
@@ -86,12 +87,14 @@ export function getServices(): Services {
   let creds: CredentialRepository;
   let cache: ReportCache | undefined;
   let clarityQuota: ClarityQuotaStore = new MemoryClarityQuotaStore(env.CLARITY_LOCAL_DAILY_BUDGET);
+  let claritySnapshots: PgClaritySnapshotStore | undefined;
   if (env.DB_MODE === "postgres") {
     const db = createPgExecutor(readDatabaseUrl());
     repo = new PgRepository(db);
     creds = new PgCredentialRepository(db);
     cache = new PgReportCache(db);
     clarityQuota = new PgClarityQuotaStore(db, env.CLARITY_LOCAL_DAILY_BUDGET);
+    claritySnapshots = new PgClaritySnapshotStore(db);
   } else {
     const mock = new MockRepository();
     repo = mock;
@@ -133,6 +136,7 @@ export function getServices(): Services {
     repo,
     ...(cache && { cache }),
     clarityQuota,
+    ...(claritySnapshots && { claritySnapshots }),
     logger,
     ...(env.DATA_MODE === "live" && createLiveAdapters(credentials, { timeoutMs: env.PROVIDER_REQUEST_TIMEOUT_MS, clarity: { connections: clarity, quota: clarityQuota }, bing: { connections: bing, client: bingApi } })),
   });

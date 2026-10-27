@@ -27,6 +27,7 @@ beforeEach(async () => {
   await w.sql("delete from public.provider_connections where provider = 'clarity'");
   await w.sql("delete from public.provider_request_reservations");
   await w.sql("delete from public.provider_request_budgets");
+  await w.sql("delete from public.clarity_snapshots");
   await w.sql("delete from public.audit_events");
   w.fakeClarity.calls.length = 0;
   w.fakeClarity.default = SAMPLE_BODY;
@@ -68,8 +69,8 @@ describe("saving and first use (fake Clarity)", () => {
 
     const r = await call(a, "get_clarity_insights", insights(propertyId));
     expect(r.isError).toBe(false);
-    expect(r.out).toMatchObject({ provider: "clarity", mock: false, cache: { hit: false }, report: { dimensions: ["OS"], period: { timeZone: "UTC" } } });
-    expect(r.out.rows[0]).toMatchObject({ metricName: "Traffic", totalSessionCount: 9554, OS: "Other" });
+    expect(r.out).toMatchObject({ provider: "clarity", mock: false, source: "live", dimensions: ["OS"], window: { days: 1 }, quota: { usedToday: 1 } });
+    expect(r.out.rows.find((x: Out) => x.OS === "Other")).toMatchObject({ sessions: 9554 });
     expect(w.fakeClarity.calls).toEqual([{ token, request: { numOfDays: 1, dimensions: ["OS"] } }]);
     expect(await statusOf("alice", connectionId)).toMatchObject({ status: "connected", lastErrorCode: null });
     expect((await statusOf("alice", connectionId)).lastValidatedAt).toBeTruthy();
@@ -78,9 +79,9 @@ describe("saving and first use (fake Clarity)", () => {
   it("answers the repeat from the saved result without another provider call, and keeps different shapes separate", async () => {
     const { propertyId } = await save("alice", fakeToken("cache"));
     const a = await as("alice");
-    expect((await call(a, "get_clarity_insights", insights(propertyId))).out.cache.hit).toBe(false);
+    expect((await call(a, "get_clarity_insights", insights(propertyId))).out.source).toBe("live");
     const again = await call(a, "get_clarity_insights", insights(propertyId));
-    expect(again.out.cache).toMatchObject({ hit: true });
+    expect(again.out).toMatchObject({ source: "cache" });
     expect(w.fakeClarity.calls).toHaveLength(1);
 
     await call(a, "get_clarity_insights", insights(propertyId, { dimensions: ["Device"] }));
@@ -90,6 +91,22 @@ describe("saving and first use (fake Clarity)", () => {
     expect(q.quota).toMatchObject({ appTrackedUsed: 3, localBudget: 8, localRemaining: 5, providerDailyLimit: 10, counts: { succeeded: 3 } });
     expect(q.quota.lastSuccessAt).toBeTruthy();
     expect(q.notes.join(" ")).toMatch(/not .*authoritative|counted by this application/i);
+  });
+
+  it("saves every live pull as history, reads it back for free, and keeps it private to its owner", async () => {
+    const { propertyId } = await save("alice", fakeToken("history"));
+    const a = await as("alice");
+    await call(a, "get_clarity_insights", insights(propertyId, { dimensions: ["Device"] }));
+    await call(a, "get_clarity_insights", insights(propertyId, { dimensions: ["Device"] })); // cache hit: no new snapshot
+    const before = w.fakeClarity.calls.length;
+    const h = await call(a, "get_clarity_history", { propertyId, dimensions: ["Device"] });
+    expect(h.isError).toBe(false);
+    expect(h.out.snapshotCount).toBe(1);
+    expect(h.out.snapshots[0]).toMatchObject({ pulledAt: expect.any(String), report: { source: "cache" } });
+    expect((await call(a, "get_clarity_history", { propertyId, reportType: "by_country" })).out.warnings.map((x: Out) => x.code)).toContain("NO_HISTORY");
+    expect(w.fakeClarity.calls).toHaveLength(before);
+    const b = await as("bob");
+    expect((await call(b, "get_clarity_history", { propertyId })).isError).toBe(true);
   });
 
   it("identical concurrent requests share one provider call", async () => {
@@ -130,12 +147,12 @@ describe("budget and stale data", () => {
     expect(blocked.out.error).toMatchObject({ code: "CLARITY_DAILY_BUDGET_EXHAUSTED", retryable: false });
     expect(w.fakeClarity.calls).toHaveLength(8);
 
-    expect((await call(a, "get_clarity_insights", insights(propertyId, { dimensions: ["Browser"], numOfDays: 1 }))).out.cache.hit).toBe(true);
+    expect((await call(a, "get_clarity_insights", insights(propertyId, { dimensions: ["Browser"], numOfDays: 1 }))).out.source).toBe("cache");
 
     await w.sql("update public.report_cache set expires_at = now() - interval '1 hour' where provider = 'clarity'");
     const stale = await call(a, "get_clarity_insights", insights(propertyId, { dimensions: ["Browser"], numOfDays: 1 }));
     expect(stale.isError).toBe(false);
-    expect(stale.out.cache).toMatchObject({ hit: true, stale: true });
+    expect(stale.out).toMatchObject({ source: "cache", stale: true });
     expect(stale.out.warnings.map((x: Out) => x.code)).toContain("STALE_CACHE");
     expect(w.fakeClarity.calls).toHaveLength(8);
   });
@@ -216,7 +233,7 @@ describe("provider failures", () => {
     const { propertyId } = await save("alice", fakeToken("empty"));
     w.fakeClarity.default = [];
     const r = await call(await as("alice"), "get_clarity_insights", insights(propertyId));
-    expect(r.out).toMatchObject({ rowCountReturned: 0, completeness: "unknown_or_provider_limited" });
+    expect(r.out).toMatchObject({ rowsReturned: 0, completeness: "unknown_or_provider_limited" });
     expect(r.out.warnings.map((x: Out) => x.code)).toContain("EMPTY_RESULT");
   });
 });
@@ -267,7 +284,7 @@ describe("tenant isolation", () => {
 
     await call(await as("alice"), "get_clarity_insights", insights(alice.propertyId));
     const second = await call(await as("bob"), "get_clarity_insights", insights(bob.propertyId));
-    expect(second.out.cache.hit).toBe(false);
+    expect(second.out.source).toBe("live");
     expect(w.fakeClarity.calls).toHaveLength(2);
     expect((await w.clarityQuota.status(alice.propertyId, NOW)).appTrackedUsed).toBe(2);
     expect((await w.sql("select count(*)::int as n from public.report_cache where provider = 'clarity'"))[0]).toEqual({ n: 2 });

@@ -33,6 +33,7 @@ describe("tool catalog", () => {
   it("exposes exactly the read-only tools in the PRD, each described, annotated and strictly typed", async () => {
     const { tools } = await (await as(USER_A)).listTools();
     expect(tools.map((t) => t.name).sort()).toEqual([
+      "get_clarity_history",
       "get_clarity_insights",
       "get_clarity_quota_status",
       "get_connection_status",
@@ -88,7 +89,7 @@ describe("predictable output", () => {
     expect(r.structured).toEqual(r.parsed); // text and structured content agree
     const conns = r.parsed.connections as Array<Record<string, unknown>>;
     expect(conns.map((c) => c.provider).sort()).toEqual(["bing", "clarity", "google", "google"]);
-    for (const c of conns) expect(Object.keys(c).sort()).toEqual(["accountLabel", "authMethod", "id", "lastValidatedAt", "propertyCount", "provider", "status"]);
+    for (const c of conns) expect(Object.keys(c).sort()).toEqual(["accountLabel", "authMethod", "id", "lastValidatedAt", "note", "propertyCount", "provider", "providerEnabled", "status"]);
     expect(r.text).not.toMatch(/token|secret|ciphertext/i);
     expect(r.parsed.requestId).toMatch(/\S/);
   });

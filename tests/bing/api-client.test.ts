@@ -270,18 +270,33 @@ describe("input validation", () => {
 });
 
 describe("capability matrix", () => {
+  const READ_METHODS = [
+    "GetUserSites", "GetRankAndTrafficStats", "GetQueryStats", "GetCrawlStats", "GetPageStats", "GetQueryPageStats", "GetPageQueryStats", "GetQueryPageDetailStats",
+    "GetCrawlIssues", "GetBlockedUrls", "GetLinkCounts", "GetUrlLinks", "GetFeeds", "GetUrlInfo", "GetUrlTrafficInfo", "GetUrlSubmissionQuota", "GetKeywordStats",
+    "GetQueryTrafficStats", "GetChildrenUrlInfo", "GetChildrenUrlTrafficInfo", "GetCrawlSettings", "GetFeedDetails", "GetDeepLinkBlocks", "GetActivePagePreviewBlocks",
+    "GetCountryRegionSettings", "GetQueryParameters", "GetConnectedPages", "GetSiteMoves", "GetSiteRoles", "GetContentSubmissionQuota", "GetKeyword", "GetRelatedKeywords",
+  ];
   it("enables only documented read-only reports", () => {
-    expect(enabledBingCapabilities().map((c) => c.id)).toEqual(["sites", "traffic", "queries", "crawl"]);
-    for (const c of enabledBingCapabilities()) expect(c.status).toBe("documented");
+    expect(enabledBingCapabilities().map((c) => c.id)).toEqual([
+      "sites", "traffic", "queries", "crawl", "pages", "query_pages", "page_queries", "query_page_detail", "crawl_issues", "blocked_urls", "inbound_links", "url_links", "sitemaps", "url_info", "url_traffic", "submission_quota", "keyword_stats",
+      "query_traffic", "children_url_info", "children_url_traffic", "crawl_settings", "feed_details", "deep_link_blocks", "page_preview_blocks", "country_region_settings", "query_parameters",
+      "connected_pages", "site_moves", "site_roles", "content_submission_quota", "keyword", "related_keywords",
+    ]);
+    for (const c of enabledBingCapabilities()) expect(["verified", "documented"]).toContain(c.status);
   });
-  it("keeps unverified and write operations disabled", () => {
-    for (const id of ["page_stats", "link_counts"]) expect(BING_CAPABILITIES.find((c) => c.id === id)).toMatchObject({ enabled: false, status: "unverified" });
+  it("only the reports checked against a live account are marked verified", () => {
+    expect(enabledBingCapabilities().filter((c) => c.status === "verified").map((c) => c.id)).toEqual(["sites", "traffic", "queries", "crawl"]);
+  });
+  it("keeps write operations disabled", () => {
     expect(BING_CAPABILITIES.find((c) => c.id === "writes")).toMatchObject({ enabled: false, status: "write_out_of_scope" });
   });
-  it("every enabled endpoint is a GET on a documented method name", () => {
+  it("every enabled endpoint is a GET (or the one documented read-only POST) on a documented read method", () => {
     for (const c of enabledBingCapabilities()) {
-      expect(c.method).toBe("GET");
-      expect(["GetUserSites", "GetRankAndTrafficStats", "GetQueryStats", "GetCrawlStats"]).toContain(c.endpoint);
+      expect(c.method).toBe(c.endpoint === "GetChildrenUrlInfo" ? "POST" : "GET");
+      expect(READ_METHODS).toContain(c.endpoint);
     }
+  });
+  it("no enabled endpoint is a write", () => {
+    for (const c of enabledBingCapabilities()) expect(c.endpoint).not.toMatch(/^(Add|Remove|Submit|Save|Enable|Fetch|Verify|Update)/);
   });
 });

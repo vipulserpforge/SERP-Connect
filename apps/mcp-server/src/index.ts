@@ -1,5 +1,5 @@
 import { loadMcpEnv } from "@serp/contracts";
-import { PgClarityQuotaStore, PgReportCache, PgRepository } from "@serp/db";
+import { PgClarityQuotaStore, PgClaritySnapshotStore, PgReportCache, PgRepository } from "@serp/db";
 import { createPgExecutor, readDatabaseUrl } from "@serp/db/pg";
 import { createLogger } from "@serp/observability";
 import { createReportService } from "@serp/reporting";
@@ -25,7 +25,7 @@ function main(): void {
   } else {
     // With a database the cache is durable and shared between server instances; otherwise it is per process.
     const db = env.DB_MODE === "postgres" ? createPgExecutor(readDatabaseUrl()) : undefined;
-    service = createReportService(env, db ? { repo: new PgRepository(db), cache: new PgReportCache(db), clarityQuota: new PgClarityQuotaStore(db, env.CLARITY_LOCAL_DAILY_BUDGET) } : {});
+    service = createReportService(env, db ? { repo: new PgRepository(db), cache: new PgReportCache(db), clarityQuota: new PgClarityQuotaStore(db, env.CLARITY_LOCAL_DAILY_BUDGET), claritySnapshots: new PgClaritySnapshotStore(db) } : {});
   }
   const verifier = buildVerifier(env);
   const server = createHttpServer({

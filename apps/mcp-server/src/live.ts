@@ -1,6 +1,6 @@
 import { BingConnectionService, ClarityConnectionService, CredentialService, createLiveAdapters } from "@serp/credentials";
 import type { McpEnv } from "@serp/contracts";
-import { PgClarityQuotaStore, PgCredentialRepository, PgRepository, PgReportCache } from "@serp/db";
+import { PgClarityQuotaStore, PgClaritySnapshotStore, PgCredentialRepository, PgRepository, PgReportCache } from "@serp/db";
 import { createPgExecutor, readDatabaseUrl } from "@serp/db/pg";
 import type { Logger } from "@serp/observability";
 import { HttpBingApiClient, HttpBingOAuthClient } from "@serp/provider-bing";
@@ -55,5 +55,5 @@ export function buildLiveReporting(env: McpEnv, logger: Logger) {
     logger,
   });
   const adapters = createLiveAdapters(credentials, { timeoutMs: env.PROVIDER_REQUEST_TIMEOUT_MS, clarity: { connections: clarity, quota: clarityQuota }, bing: { connections: bing, client: bingApi } });
-  return { repo, cache: new PgReportCache(db), clarityQuota, ...adapters };
+  return { repo, cache: new PgReportCache(db), clarityQuota, claritySnapshots: new PgClaritySnapshotStore(db), ...adapters };
 }

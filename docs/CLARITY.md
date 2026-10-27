@@ -68,6 +68,39 @@ The tool descriptions tell Claude that Clarity is on-site behaviour (not search 
 4. `SECRET_KEYS` must already be set (same as for Google). No Google Cloud work is needed for Clarity.
 5. Redeploy both apps.
 
+## Report types and the clean MCP output (verified live, 27 Oct 2026)
+
+`get_clarity_insights` takes a `reportType` instead of raw dimensions (one Clarity request each; ask for one or two per question):
+
+| reportType | dimensions | answers |
+|---|---|---|
+| overview | none | totals + top devices, browsers, OS, countries, pages, referrers |
+| by_device | Device | mobile vs desktop |
+| by_country | Country/Region | where visitors are |
+| by_source | Source, Medium | traffic source and medium |
+| by_channel | Channel | organic / direct / social / referral / paid |
+| by_page | URL | sessions, engagement, scroll depth per page |
+| frustration_by_page | URL | pages with rage / dead / quick-back / error clicks |
+| by_browser_os | Browser, OS | browser and OS combinations |
+
+Output is one merged row per dimension value with short numeric fields, plus `source` (live/cache), `pulledAt`, `dataAgeMinutes`, the UTC `window`, `rowsReturned`/`rowsAvailable`, `quota` (used, remaining, reset) and warnings (LOW_QUOTA at 2 or fewer left, QUOTA_EXHAUSTED_CACHE_ONLY at 0, truncation at 1,000 rows). The cache key is (project, numOfDays, dimensions), 6 hours, so presets that share dimensions (by_page and frustration_by_page) share one request.
+
+### Where the live API differs from the documentation
+- Metric block names have no spaces (`DeadClickCount`, `ScrollDepth`); the URL column is `Url`; numbers are real numbers, not strings.
+- With no dimension the response also holds breakdown blocks (Browser, Device, OS, Country, PageTitle, ReferrerUrl as `{name, sessionsCount}` and PopularPages as `{url, visitsCount}`). With a dimension only the 9 metric blocks come back.
+- Bot sessions are NOT a subset of sessions: a row can have more bot sessions than sessions, so no "human = total − bot" figure is derived. Both counts are shown, labelled.
+- In click/error blocks `sessionsCount` is all sessions in scope; `subTotal` is the event count and `sessionsWithMetricPercentage` the share affected.
+- The Traffic block can have more rows than the other blocks (113 URLs vs 54).
+- No rate-limit headers; the app's own counter is the only quota view. Test fixtures: `tests/clarity/fixtures/`.
+
+## Saved history (`clarity_snapshots`)
+
+Every **live** pull (not cache hits, not demo data) is saved with its `pulled_at` time in `public.clarity_snapshots` (migration `20261027100000_clarity_snapshots.sql`). `get_clarity_history` reads them back newest first, in the same tidy shape, with no Clarity request and no quota. Details:
+- Server-only table (RLS on, no browser grants). Rows are deleted with the user or the connection; pulls older than 90 days are pruned on each save.
+- Saving is best-effort: a failed save never fails the report.
+- History has gaps by design (a pull happens only when someone asks) and 1-3 day windows overlap, so compare snapshots, not daily totals.
+- **Deploy:** apply the migration to Supabase before releasing. Without the table, saving fails quietly (logged as `clarity.snapshot_failed`) and `get_clarity_history` errors.
+
 ## Tests
 
 | Test | What | Data |
@@ -75,6 +108,8 @@ The tool descriptions tell Claude that Clarity is on-site behaviour (not search 
 | `tests/clarity/api-client.test.ts` | request building, error mapping, timeouts, validation, normalization (edge cases) | **mock** (fake fetch + Microsoft's sample response) |
 | `tests/clarity/quota.test.ts` | budget semantics on the memory and Postgres stores, concurrency, multi-instance, windows, ledger, privileges | **mock** (real SQL on PGlite) |
 | `tests/clarity/connection-service.test.ts` | encryption, ownership, rename/reconnect/disconnect, fail-safe key handling | **mock** |
+| `tests/clarity/report.test.ts` | presets, clean output, quota warnings, cache labels | **real responses** captured once from Clarity, replayed offline |
+| `tests/clarity/snapshots.test.ts` | history store on memory and Postgres: order, shape filter, user scoping, privileges, cascade | **mock** |
 | `tests/clarity/system.test.ts` | whole stack: Postgres + encrypted tokens + budget + cache + MCP, two customers, 401/403/429/5xx, stale data, secrecy | **mock** (fake Clarity client) |
 | `tests/e2e/auth-flow.e2e.ts` (Clarity block) | built web app: save, verify (demo), fetch on demand, free page views, cross-user attempts, rename/replace/remove | **mock** (built-in demo adapter) |
 | `pnpm clarity:check --yes` | **the only real-API test**, run by you | **real Clarity** |

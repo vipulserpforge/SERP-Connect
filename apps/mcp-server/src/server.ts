@@ -3,10 +3,14 @@ import { CallToolRequestSchema, ErrorCode, ListToolsRequestSchema, McpError, typ
 import { z } from "zod";
 import type { Principal } from "@serp/auth";
 import {
+  GetClarityHistorySchema,
   GetClarityInsightsSchema,
   GetClarityQuotaStatusSchema,
   GetSupportedMetricsSchema,
   ListPropertiesSchema,
+  BingPresetSchema,
+  BingSettingsSchema,
+  QueryBingKeywordsSchema,
   QueryBingSchema,
   QueryGa4Schema,
   QueryGa4CohortSchema,
@@ -71,6 +75,23 @@ const ReportOutput = z.looseObject({
   requestId: z.string(),
 });
 
+/** Tidy Clarity report (see provider-clarity/report.ts): different from the flat shape above on purpose. */
+const ClarityReportOutput = z.looseObject({
+  provider: z.literal("clarity"),
+  property: z.object({ id: z.string(), name: z.string() }),
+  reportType: z.string(),
+  source: z.enum(["live", "cache"]),
+  pulledAt: z.string(),
+  dataAgeMinutes: z.number(),
+  window: z.looseObject({ startUtc: z.string(), endUtc: z.string(), days: z.number() }),
+  rowsReturned: z.number(),
+  truncated: z.boolean(),
+  quota: z.looseObject({ usedToday: z.number(), remainingToday: z.number(), resetsAtUtc: z.string() }),
+  mock: z.boolean(),
+  warnings: z.array(Warning),
+  requestId: z.string(),
+});
+
 const ConnectionStatusOutput = z.object({
   connections: z.array(
     z.object({
@@ -81,6 +102,8 @@ const ConnectionStatusOutput = z.object({
       lastValidatedAt: z.string().nullable(),
       authMethod: z.enum(["oauth", "api_key"]).nullable(),
       propertyCount: z.number(),
+      providerEnabled: z.boolean(),
+      note: z.string().nullable(),
     }),
   ),
   requestId: z.string(),
@@ -244,24 +267,38 @@ function toolDefs(service: ReportService): ToolDef[] {
       name: "get_clarity_insights",
       title: "Clarity behaviour insights",
       description:
-        "Microsoft Clarity on-site behaviour data for one connected project: sessions and traffic, popular pages, engagement time, scroll depth, device/browser/OS/country/source breakdowns, and interaction or error signals (rage clicks, dead clicks, quick-backs, script errors). " +
-        "Use it for how visitors behave ON the site. It is NOT search data: for rankings, search impressions, queries or organic clicks use query_gsc_performance, and for audience and conversions use query_ga4_report. " +
-        "LIMIT: Clarity can only look back 72 hours (numOfDays 1, 2 or 3). It cannot answer 7, 28 or 90 day questions: use query_gsc_performance or query_ga4_report for those and say so to the user. Window is a rolling window in UTC; no custom dates, history or paging. Up to 3 dimensions (Browser, Device, Country/Region, OS, Source, Medium, Campaign, Channel, URL); each metric block returns at most 1,000 rows. " +
-        "Each project may make only 10 Clarity requests per day, so a fresh call spends scarce quota: results are cached for hours and repeating the same question is free. Do not call it repeatedly or with varying parameters to 'explore'; call get_clarity_quota_status first if unsure. " +
-        "Clarity sessions include bots: check the BOT_TRAFFIC_INCLUDED warning and `providerMetadata.botTraffic` before quoting session counts. Check `cache` (hit/stale), `warnings` (truncation, empty result, stale data) and `completeness`: an empty result means no data was reported, not zeros. Read-only.",
+        "Microsoft Clarity on-site behaviour for one connected project, for the LAST 1-3 DAYS ONLY (numOfDays 1, 2 or 3; rolling window in UTC). It is a short behaviour snapshot, NOT a replacement for Search Console (rankings, queries, organic clicks) or GA4 (audience, conversions, long history). Clarity has no recordings, heatmaps or history older than 3 days: for 7, 28 or 90 day questions use query_gsc_performance or query_ga4_report and say so. " +
+        "Pick ONE `reportType` per question (at most two per conversation topic): overview = how is the site doing overall (totals plus top devices, browsers, OS, countries, pages, referrers); by_device = mobile vs desktop; by_country = where visitors are; by_source = traffic source and medium; by_channel = organic/direct/social/referral/paid; by_page = which pages get sessions, engagement, scroll depth; frustration_by_page = pages with rage clicks, dead clicks, quick-backs, script or error clicks; by_browser_os = browser/OS problems. " +
+        "QUOTA: each project may make only 10 Clarity requests per UTC day. Every answer is saved for 6 hours, so repeating a question is free; the result says `source` (cache or live), `pulledAt`, `dataAgeMinutes` and `quota.remainingToday`. Never call it to explore or with varied parameters; heed LOW_QUOTA and QUOTA_EXHAUSTED_CACHE_ONLY warnings (at zero only saved results are served). " +
+        "Numbers: `sessions` and `botSessions` are two separate Clarity counts (bots can exceed sessions), so never subtract one from the other; report both and label them. Rows are capped at 1,000 per metric with no paging: check `truncated`. An empty result means no data was reported, not zeros. Read-only.",
       input: GetClarityInsightsSchema,
-      output: ReportOutput,
+      output: ClarityReportOutput,
       annotations: READ_ONLY,
       provider: "clarity",
       async run(args, principal, requestId) {
-        return asRecord(await service.getClarityInsights(principal, args, requestId));
+        return asRecord(await service.getClarityReport(principal, args, requestId));
+      },
+    },
+    {
+      name: "get_clarity_history",
+      title: "Clarity saved history",
+      description:
+        "Earlier Microsoft Clarity pulls for one project, newest first, each with its pulledAt time. Clarity itself only keeps 1-3 days, so this is the only way to compare today with last week: every live pull is saved (for 90 days) and shown here in the same tidy shape as get_clarity_insights (rows capped at 10 per pull). " +
+        "Use it to answer 'has this changed since last time?'. It reads saved rows only: it never calls Clarity and uses no quota. Pulls are made only when someone asks a question, so there can be gaps, and 1-3 day windows from different pulls overlap: compare them as snapshots, not daily totals. An empty list means nothing of that report type was pulled yet (use get_clarity_insights once to start the history). " +
+        "Use the same `reportType` as the pulls you want to see. Not a replacement for Search Console or GA4 history. Read-only.",
+      input: GetClarityHistorySchema,
+      output: z.looseObject({ provider: z.literal("clarity"), snapshotCount: z.number(), snapshots: z.array(z.looseObject({ snapshotId: z.string(), pulledAt: z.string() })), warnings: z.array(Warning) }),
+      annotations: LOCAL_ONLY,
+      provider: "clarity",
+      async run(args, principal) {
+        return asRecord(await service.getClarityHistory(principal, args));
       },
     },
     {
       name: "get_clarity_quota_status",
       title: "Clarity quota status",
       description:
-        "Show this application's tracked use of the 10-requests-per-day Clarity limit for one project: requests used, locally remaining, the reporting window, and the last successful request. " +
+        "Show this application's tracked use of the 10-requests-per-day Clarity limit for one project: requests used today, how many fresh requests remain (warns at 2 or fewer, and says when only saved results will be served), when it resets (00:00 UTC), and the last successful request. " +
         "The count is tracked by this app, not reported by Clarity, so treat it as an estimate. Read-only; makes no call to Clarity and uses no quota.",
       input: GetClarityQuotaStatusSchema,
       output: QuotaOutput,
@@ -282,16 +319,61 @@ function toolDefs(service: ReportService): ToolDef[] {
       name: "query_bing_report",
       title: "Bing Webmaster report",
       description:
-        "Bing Webmaster Tools data for one connected site. report=traffic: daily clicks and impressions from Bing search. report=queries: search queries with clicks, impressions and average positions. report=crawl: how Bingbot crawls and indexes the site (pages crawled, errors, HTTP codes, pages in the index). " +
+        "Bing Webmaster Tools data for one connected site (read-only). Pick `report`: traffic (daily clicks and impressions), queries, pages, query_pages (pages for one query), page_queries (queries for one page), query_page_detail, crawl, crawl_issues, crawl_problems, blocked_urls, inbound_links, url_links, sitemaps, url_info, url_traffic, submission_quota, keyword_stats, plus query_traffic (daily traffic of one query), children_url_info and children_url_traffic (pages and folders under a url, paged with pageNumber), crawl_settings and feed_details (one sitemap index). " +
+        "queries and pages come back as one row per query or page with clicks, impressions, CTR and average position; add compare=true for the change against the previous period of the same length. " +
         "This is Bing's data, not Google's: use query_gsc_performance for Google Search Console. Bing counts clicks, impressions and positions in its own way, so never add Bing and Google figures together and always name the provider. " +
-        "Bing's reports take no date range: startDate+endDate or lastDays (last N calendar days up to today, UTC) filter the rows Bing returns, and with no dates you get everything it returned. The traffic series is updated daily, the query report weekly (so recent days are normally absent), crawl statistics daily for the last 6 months. " +
-        "Bing publishes no numeric request limit and may rate limit; results are cached for hours, so repeating a question is cheap. Check `warnings` (empty result, nothing in the window, row limit) and `completeness`: an empty result means Bing reported nothing, and a missing value is not zero. Read-only.",
+        "Bing's reports take no date range: startDate+endDate or lastDays filter the rows Bing returns. Traffic and crawl are daily; queries and pages are weekly (recent days are normally absent). The public Bing API has no country or device breakdown. " +
+        "Bing publishes no numeric request limit and may rate limit; results are cached for hours. Start your answer with `summary`, show the table and `totals` (and `comparison` when present), pass on every item in `warnings`, and end with `nextStep`. A missing value is not zero. Default limit is 100; `providerMetadata.pagination` says how many rows exist and how to see the rest, and `providerMetadata.granularity` says daily, weekly or snapshot. For ready-made questions use get_bing_insights; for site configuration use get_bing_site_settings; for keyword research use query_bing_keywords.",
       input: QueryBingSchema,
       output: ReportOutput,
       annotations: READ_ONLY,
       provider: "bing",
       async run(args, principal, requestId) {
         return asRecord(await service.queryBing(principal, args, requestId));
+      },
+    },
+    {
+      name: "get_bing_site_settings",
+      title: "Bing Webmaster site settings",
+      description:
+        "How one connected site is configured at Bing (read-only): `report` = blocked_urls, deep_link_blocks, page_preview_blocks, country_region_settings (target country), query_parameters (URL parameters Bing ignores), connected_pages, site_moves, site_roles (who has access: email addresses and roles; delegation codes are never shown), submission_quota and content_submission_quota (how many URLs or content items can still be submitted). " +
+        "These are snapshots without dates. Some of these methods have no published response sample at Bing, so their fields are shown as Bing sends them and flagged `shape: unverified` in the warnings. Nothing can be changed through this connector. " +
+        "Bing's data, not Google's. Start with `summary`, show the table, pass on `warnings`, end with `nextStep`. Default limit is 100 (see `providerMetadata.pagination`).",
+      input: BingSettingsSchema,
+      output: ReportOutput,
+      annotations: READ_ONLY,
+      provider: "bing",
+      async run(args, principal, requestId) {
+        return asRecord(await service.queryBingSettings(principal, args, requestId));
+      },
+    },
+    {
+      name: "query_bing_keywords",
+      title: "Bing keyword research",
+      description:
+        "Bing-wide keyword data from Bing Webmaster Tools (read-only), not tied to any site: `report` = keyword_stats (volume history of one keyword), keyword (impressions of one keyword over a period) or related_keywords (keywords related to it, with impressions). " +
+        "This is market data, not your site's traffic: use query_bing_report with queries for what your site actually gets. Bing does not document the accepted `country` and `language` values; the defaults are us and en-US, and a warning says so. keyword and related_keywords default to the last 30 days. " +
+        "No site is needed; propertyId is optional and only selects which of your Bing connections to use. Start with `summary`, show the table, pass on `warnings`, end with `nextStep`.",
+      input: QueryBingKeywordsSchema,
+      output: ReportOutput,
+      annotations: READ_ONLY,
+      provider: "bing",
+      async run(args, principal, requestId) {
+        return asRecord(await service.queryBingKeywords(principal, args, requestId));
+      },
+    },
+    {
+      name: "get_bing_insights",
+      title: "Bing Webmaster insights",
+      description:
+        "Ready-made Bing Webmaster answers for one connected site: top_queries, top_pages, low_ctr_queries (many impressions, few clicks), declining_pages (losing clicks versus the previous period), crawl_problems (crawl errors, blocked URLs, latest crawl numbers), top_inbound_links, sitemap_status. " +
+        "Same rules as query_bing_report: Bing's own numbers, never added to or compared one-to-one with Google, weekly query/page data, no country or device split. Start with `summary`, show the table, `totals` and `comparison`, pass on `warnings`, end with `nextStep`. Read-only.",
+      input: BingPresetSchema,
+      output: ReportOutput,
+      annotations: READ_ONLY,
+      provider: "bing",
+      async run(args, principal, requestId) {
+        return asRecord(await service.queryBingPreset(principal, args, requestId));
       },
     },
     {
