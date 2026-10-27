@@ -239,3 +239,25 @@ describe("configuration safety", () => {
     expect(() => loadMcpEnv({ ...prod, MCP_PUBLIC_URL: "https://mcp.example.com" })).not.toThrow();
   });
 });
+
+describe("failed sign-in trail", () => {
+  it("logs who was refused (address and reason) but never the token", async () => {
+    const before = stack.logs.length;
+    await rawPost(stack); // no token
+    await rawPost(stack, { token: "not.a.jwt", headers: { "x-real-ip": "203.0.113.9" } });
+    const lines = stack.logs.slice(before).map((l) => JSON.parse(l) as Record<string, unknown>);
+    const missing = lines.find((l) => l.msg === "mcp.token_missing");
+    const rejected = lines.find((l) => l.msg === "mcp.token_rejected");
+    expect(missing?.remote).toEqual(expect.any(String));
+    expect(rejected).toMatchObject({ remote: "203.0.113.9" });
+    expect(rejected?.reason).toBeTruthy();
+    expect(stack.logs.slice(before).join("\n")).not.toContain("not.a.jwt");
+  });
+
+  it("ignores a malformed X-Real-IP instead of logging attacker-chosen text", async () => {
+    const before = stack.logs.length;
+    await rawPost(stack, { token: "x.y.z", headers: { "x-real-ip": "1.2.3.4\"}{\"msg\":\"forged" } });
+    const rejected = stack.logs.slice(before).map((l) => JSON.parse(l) as Record<string, unknown>).find((l) => l.msg === "mcp.token_rejected");
+    expect(rejected?.remote).not.toContain("forged");
+  });
+});

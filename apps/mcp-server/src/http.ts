@@ -17,6 +17,19 @@ function send(res: ServerResponse, status: number, body: unknown, headers: Recor
   res.end(body === undefined ? undefined : JSON.stringify(body));
 }
 
+const IP_TEXT = /^[0-9a-f:.]{3,45}$/i;
+
+/**
+ * Address of the caller, for the failed-sign-in trail. Behind nginx (which sets X-Real-IP and is the only way in: the
+ * app port is not exposed) that header is the real client; otherwise the socket address. Never trusted for any decision.
+ */
+function clientAddress(req: IncomingMessage): string {
+  const header = req.headers["x-real-ip"];
+  const value = (Array.isArray(header) ? header[0] : header)?.trim();
+  if (value && IP_TEXT.test(value)) return value;
+  return (req.socket.remoteAddress ?? "unknown").slice(0, 45);
+}
+
 /** JSON-RPC error envelope for failures that happen before a message can be handled. */
 const rpcError = (code: number, message: string) => ({ jsonrpc: "2.0", error: { code, message }, id: null });
 
@@ -91,6 +104,7 @@ export function createHttpServer({ env, verifier, tools, logger }: HttpDeps): Se
   async function authenticate(req: IncomingMessage, res: ServerResponse, requestId: string, cors: Record<string, string>): Promise<Principal | null> {
     const token = extractBearer(req.headers.authorization);
     if (!token) {
+      logger.warn("mcp.token_missing", { requestId, remote: clientAddress(req) });
       send(res, 401, { error: { code: "AUTH_REQUIRED", message: "Authorization required.", requestId } }, { ...cors, "www-authenticate": challenge() });
       return null;
     }
@@ -98,7 +112,7 @@ export function createHttpServer({ env, verifier, tools, logger }: HttpDeps): Se
       return await verifier.verify(token);
     } catch (err) {
       if (err instanceof TokenVerificationError) {
-        logger.warn("mcp.token_rejected", { requestId, reason: err.reason });
+        logger.warn("mcp.token_rejected", { requestId, reason: err.reason, remote: clientAddress(req) });
         if (err.kind === "insufficient_scope") {
           send(res, 403, { error: { code: "FORBIDDEN", message: err.message, requestId } }, { ...cors, "www-authenticate": challenge({ code: "insufficient_scope", description: err.message }, err.requiredScopes) });
         } else if (err.kind === "unavailable") {
@@ -109,7 +123,7 @@ export function createHttpServer({ env, verifier, tools, logger }: HttpDeps): Se
         return null;
       }
       // Mock verifier and anything unexpected: never explain why.
-      logger.warn("mcp.token_rejected", { requestId, reason: "unrecognized" });
+      logger.warn("mcp.token_rejected", { requestId, reason: "unrecognized", remote: clientAddress(req) });
       send(res, 401, { error: { code: "AUTH_REQUIRED", message: "Invalid or missing access token.", requestId } }, { ...cors, "www-authenticate": challenge({ code: "invalid_token", description: "The access token is invalid." }) });
       return null;
     }
