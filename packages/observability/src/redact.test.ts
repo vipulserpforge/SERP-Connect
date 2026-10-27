@@ -39,4 +39,15 @@ describe("redact", () => {
     expect(lines[0]).not.toContain("secret-value");
     expect(lines[0]).toContain('"ok":1');
   });
+
+  it("redacts credentials inside URLs and query strings in plain text", () => {
+    const apiKey = "0123456789abcdef0123456789abcdef";
+    const msg = `request failed: https://ssl.bing.com/webmaster/api.svc/json/GetUserSites?siteUrl=https%3A%2F%2Fa.com&apikey=${apiKey}&x=1`;
+    const out = JSON.stringify(redact({ message: msg, other: "access_token=abc123 and code=zzz789" }));
+    expect(out).not.toContain(apiKey);
+    expect(out).not.toContain("abc123");
+    expect(out).not.toContain("zzz789");
+    expect(out).toContain("siteUrl=https%3A%2F%2Fa.com"); // non-secret parts stay readable
+    expect(out).toContain("&x=1");
+  });
 });

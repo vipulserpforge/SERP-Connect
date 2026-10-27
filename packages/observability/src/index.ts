@@ -6,6 +6,8 @@ const BEARER = /Bearer\s+[A-Za-z0-9._~+/=-]+/g;
 const GOOGLE_TOKEN = /\bya29\.[A-Za-z0-9._-]+/g;
 const GOOGLE_REFRESH = /\b1\/\/[A-Za-z0-9._-]{20,}/g;
 const JWT = /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]*/g;
+/** Credentials carried in a URL query string or form body (`?apikey=...`, `access_token=...`), as the Bing API key is. */
+const QUERY_SECRET = /((?:^|[?&;\s"'])(?:api[-_]?key|access[-_]?token|refresh[-_]?token|client[-_]?secret|token|code|password)=)[^&\s"'#]+/gi;
 const DB_URL = /\b(postgres(?:ql)?|https?):\/\/[^\s:@/]+:[^\s@/]+@/gi;
 
 export const REDACTED = "[REDACTED]";
@@ -19,6 +21,7 @@ export function redact(value: unknown, depth = 0): unknown {
       .replace(GOOGLE_TOKEN, REDACTED)
       .replace(GOOGLE_REFRESH, REDACTED)
       .replace(JWT, REDACTED)
+      .replace(QUERY_SECRET, `$1${REDACTED}`)
       .replace(DB_URL, (_m, scheme: string) => `${scheme}://${REDACTED}@`);
   }
   if (Array.isArray(value)) return value.map((v) => redact(v, depth + 1));
