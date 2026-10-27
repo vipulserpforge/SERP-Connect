@@ -74,12 +74,12 @@ export default async function ConsentPage({ searchParams }: { searchParams: Prom
       <section className="card mt-6 text-sm">
         <h2 className="font-medium">{data.client.name} will be able to</h2>
         <ul className="mt-2 list-disc space-y-1 pl-5">
-          <li>Read Search Console and Google Analytics 4 data for the properties you enabled for Claude.</li>
-          <li>Only ever read: it cannot change anything in your Google accounts or in this app.</li>
+          <li>Read data from the accounts you connected here (Search Console, Google Analytics 4, Microsoft Clarity, Bing Webmaster Tools), only for the properties you enabled for Claude.</li>
+          <li>Only ever read: it cannot change anything in those accounts or in this app.</li>
         </ul>
         <h2 className="mt-4 font-medium">It will not receive</h2>
         <ul className="mt-2 list-disc space-y-1 pl-5">
-          <li>Your password or your Google credentials. Those stay encrypted on our servers.</li>
+          <li>Your password, or the Google, Clarity or Bing credentials you saved. Those stay encrypted on our servers.</li>
         </ul>
         {scopes.length > 0 && (
           <p className="mt-4 opacity-70">
