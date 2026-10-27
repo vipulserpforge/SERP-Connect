@@ -1,3 +1,4 @@
+import { readTextCapped } from "@serp/contracts";
 import { z } from "zod";
 import { BING_API_KEY_BASE_URL, BING_OAUTH_BASE_URL, type BingAuth } from "./constants.js";
 import { parseBingDate } from "./dates.js";
@@ -528,7 +529,8 @@ export interface HttpBingApiOptions {
   fetch?: typeof fetch;
 }
 
-const MAX_BODY_CHARS = 25_000_000;
+/** Largest response read into memory (streamed, so an oversized body is dropped early). */
+const MAX_BODY_BYTES = 16 * 1024 * 1024;
 
 /**
  * Typed client for the JSON/HTTP (REST) protocol only. GET requests; credentials go in the documented place for each method
@@ -573,13 +575,13 @@ export class HttpBingApiClient implements BingApiClient {
       throw new BingApiError("unavailable");
     }
 
-    let text: string;
+    let text: string | null;
     try {
-      text = await res.text();
+      text = await readTextCapped(res, MAX_BODY_BYTES);
     } catch {
       throw new BingApiError("unavailable", res.status);
     }
-    if (text.length > MAX_BODY_CHARS) throw new BingApiError("bad_response", res.status);
+    if (text === null) throw new BingApiError("bad_response", res.status);
     let parsedBody: unknown;
     try {
       parsedBody = text ? JSON.parse(text) : null;

@@ -1,3 +1,4 @@
+import { readTextCapped } from "@serp/contracts";
 import { CLARITY_ENDPOINT } from "./constants.js";
 
 export type ClarityApiErrorKind = "invalid_request" | "unauthorized" | "forbidden" | "quota" | "unavailable" | "bad_response";
@@ -71,13 +72,13 @@ export class HttpClarityApiClient implements ClarityApiClient {
     if (res.status === 429) throw new ClarityApiError("quota", 429);
     if (!res.ok) throw new ClarityApiError("unavailable", res.status);
 
-    let text: string;
+    let text: string | null;
     try {
-      text = await res.text();
+      text = await readTextCapped(res, MAX_BODY_BYTES);
     } catch {
       throw new ClarityApiError("unavailable", res.status);
     }
-    if (text.length > MAX_BODY_BYTES) throw new ClarityApiError("bad_response", res.status);
+    if (text === null) throw new ClarityApiError("bad_response", res.status);
     try {
       return JSON.parse(text);
     } catch {
