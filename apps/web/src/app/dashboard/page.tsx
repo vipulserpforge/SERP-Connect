@@ -1,4 +1,5 @@
 import { toConnectorError } from "@serp/contracts";
+import { knownFormMessage } from "@serp/auth";
 import type { QuotaStatus } from "@serp/provider-clarity";
 import { BingCard } from "@/components/bing-card";
 import { ClarityCard } from "@/components/clarity-card";
@@ -234,7 +235,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 quotas={quotas}
                 notice={clarity}
                 error={clarityError}
-                errorMessage={clarityMsg}
+                errorMessage={knownFormMessage(clarityMsg)}
                 enabled={getEnv().PROVIDER_CLARITY_ENABLED}
               />
             );
@@ -247,7 +248,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 properties={properties}
                 notice={bing}
                 error={bingError}
-                errorMessage={bingMsg}
+                errorMessage={knownFormMessage(bingMsg)}
                 sites={bingSites}
                 unverified={bingUnverified}
                 syncError={bingSyncError}

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { knownFormMessage } from "@serp/auth";
 import type { NormalizedReportResult, ReportRow } from "@serp/contracts";
 import { CLARITY_DAILY_REQUEST_LIMIT, CLARITY_DIMENSIONS, CLARITY_DOCS_URL, CLARITY_MAX_ROWS, CLARITY_TIME_SEMANTICS } from "@serp/provider-clarity";
 import { newRequestId } from "@serp/observability";
@@ -197,7 +198,7 @@ export default async function ClarityReportsPage({ searchParams }: { searchParam
 
       {errorCode && (
         <p role="alert" className="mt-6 alert tone-err">
-          {errorCode === "INVALID_QUERY" ? (sp.msg ?? "Those settings are not supported by Clarity.") : (ERRORS[errorCode] ?? ERRORS.INTERNAL_ERROR)}
+          {errorCode === "INVALID_QUERY" ? (knownFormMessage(sp.msg) ?? "Those settings are not supported by Clarity.") : (ERRORS[errorCode] ?? ERRORS.INTERNAL_ERROR)}
         </p>
       )}
 

@@ -72,3 +72,24 @@ export function mapSignInError(code: string | undefined): AuthErrorCode {
   if (code === "over_request_rate_limit") return "rate_limited";
   return "invalid_credentials";
 }
+
+/**
+ * Validation sentences the connection forms may pass back through the address bar. A page address can be crafted by anyone,
+ * so only these exact sentence shapes are ever shown: anything else is dropped and the page falls back to its own fixed text.
+ */
+const KNOWN_FORM_MESSAGES: RegExp[] = [
+  /^Each Clarity dimension can be used only once per request\.$/,
+  /^Clarity allows at most \d{1,2} dimensions per request\.$/,
+  /^Unsupported Clarity dimension\(s\): [A-Za-z/, ]{1,80}\.(?: .{0,200})?$/,
+  /^Give the connection a name of 2-60 characters \(letters, numbers, spaces and \. _ & \( \) ' -\)\.$/,
+  /^That API key is already connected under another name\. Remove the other connection first\.$/,
+  /^That token is already connected under another name\. Remove the other connection first\.$/,
+  /^That does not look like a Bing Webmaster API key\. It is a string of letters and numbers \(usually 32 characters\)\. Copy it again from Bing Webmaster Tools\.$/,
+  /^That does not look like a Clarity API token\. Copy the whole token from Clarity \(Settings → Data Export\) without spaces\.$/,
+  /^You can connect up to \d{1,3} (?:Bing accounts|Clarity projects)\. Remove one first\.$/,
+];
+
+export function knownFormMessage(text: unknown): string | undefined {
+  if (typeof text !== "string" || text.length > 300) return undefined;
+  return KNOWN_FORM_MESSAGES.some((re) => re.test(text)) ? text : undefined;
+}

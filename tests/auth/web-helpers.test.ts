@@ -74,3 +74,22 @@ describe("environment safety", () => {
     }
   });
 });
+
+describe("knownFormMessage (text arriving in a page address)", () => {
+  it("shows our own validation sentences", async () => {
+    const { knownFormMessage } = await import("@serp/auth");
+    for (const m of [
+      "Each Clarity dimension can be used only once per request.",
+      "Unsupported Clarity dimension(s): Foo, Bar. Use up to three of: Browser, Device.",
+      "That API key is already connected under another name. Remove the other connection first.",
+      "You can connect up to 5 Bing accounts. Remove one first.",
+    ]) expect(knownFormMessage(m)).toBe(m);
+  });
+
+  it("drops anything else, so a crafted link cannot put its own wording on our page", async () => {
+    const { knownFormMessage } = await import("@serp/auth");
+    for (const m of ["Your session expired. Call 555-0100 to restore access.", "Each Clarity dimension can be used only once per request. Visit evil.example", "", undefined, 42, "x".repeat(400)]) {
+      expect(knownFormMessage(m)).toBeUndefined();
+    }
+  });
+});
