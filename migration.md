@@ -214,6 +214,10 @@ Vercel → **Settings** → **Environment Variables**. Change or add these for *
 | `BING_REDIRECT_URI` (only if it is set) | `https://connect.serpforge.io/api/oauth/bing/callback` |
 | `SUPPORT_EMAIL` | an address on the new domain, for example `support@serpforge.io` (make sure you can receive mail there), or leave your current one |
 
+**Type must be Config for `NEXT_PUBLIC_…` variables.** In the Vercel form choose **Type: Config** (plain text), not **Secret**. Vercel refuses a Secret with a `NEXT_PUBLIC_` name and shows "Remove the public framework prefix to keep this value private…". Those values go to the visitor's browser by design, and these two are only web addresses. A variable already saved as Secret cannot be switched: **Remove** it (⋯ → Remove), then **Add New** with Type **Config** and Environments **Production**. Keep the real secrets (`GOOGLE_CLIENT_SECRET`, `SECRET_KEYS`, `SUPABASE_SERVICE_ROLE_KEY`, …) as **Secret**.
+
+`NEXT_PUBLIC_APP_URL` is the important one (sign-in redirects and request checks use it). `NEXT_PUBLIC_MCP_URL` is optional: the dashboard's connector link comes from the code (`mcp-url.ts`), not from this setting.
+
 Leave everything else (Supabase keys, `GOOGLE_CLIENT_ID`/`SECRET`, `SECRET_KEYS`, `CREDENTIAL_FINGERPRINT_KEY`) **exactly as it is**.
 
 Why: `NEXT_PUBLIC_…` values are baked into the site when it is built. Changing them has no effect until the next build (Step 4).
@@ -595,6 +599,7 @@ Do this only after a week with no email problems, and after confirming Supabase'
 | `nginx -t` complains about `limit_req_zone` "already defined" | The line exists in both site files | Delete it from the new file (Phase 4 Step 2) |
 | `ssh serp@…` says "Permission denied" | The `serp` account has no password | Log in with `ssh root@172.93.223.194`, then `su - serp` (Phase 4 Step 1) |
 | Certbot fails | DNS not yet pointing at the VPS, or port 80/443 closed | Check Phase 2 Step 3. `ufw status` should show 80 and 443 allowed |
+| Vercel: "Remove the public framework prefix to keep this value private…" | `NEXT_PUBLIC_…` variable was saved as **Secret** | Phase 3 Step 3: remove it and re-add with Type **Config** |
 | Hostinger: "DNS resource record is not valid or conflicts with another resource record" when adding `connect` | An existing `connect` record (often a Hostinger **ALIAS** to `…cdn.hstgr.net`) blocks the CNAME | Phase 3 Step 2: delete that ALIAS, then add the Vercel CNAME |
 | Vercel domain shows "Invalid Configuration" | DNS record missing or wrong | Compare with what Vercel shows (Phase 3 Step 2). Wait 10 minutes |
 | Google connection works for you but not a customer | App is in Testing mode and they are not a listed test user (or their 7 days passed) | Google Auth Platform → **Audience** → add them under **Test users**. Not caused by the move |
