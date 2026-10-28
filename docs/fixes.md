@@ -120,7 +120,7 @@ In Claude, ask: *"List my Bing sites"* then *"Show Bing traffic for the last 28 
 ### E. Optional: "Connect with Bing" login button (OAuth)
 Skip this if the API key works. It is only needed if you want customers to connect without pasting a key.
 1. In Bing Webmaster Tools: **Settings → API Access → OAuth Client** → create a client.
-2. Register this redirect address **exactly**: `https://connect.visibll.in/api/oauth/bing/callback`
+2. Register this redirect address **exactly**: `https://connect.serpforge.io/api/oauth/bing/callback`
 3. Add `BING_CLIENT_ID` and `BING_CLIENT_SECRET` to **Vercel** and to **mcp.env on the VPS**, then redeploy and restart as in steps 2 and 3.
 4. Press **Connect with Bing** with a test account and confirm sites load. Wait about an hour and load a report again to prove token renewal works.
 
