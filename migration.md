@@ -210,9 +210,9 @@ Vercel → **Settings** → **Environment Variables**. Change or add these for *
 |---|---|
 | `NEXT_PUBLIC_APP_URL` | `https://connect.serpforge.io` |
 | `NEXT_PUBLIC_MCP_URL` | `https://mcp.serpforge.io/mcp` |
-| `GOOGLE_REDIRECT_URI` (only if it is set) | `https://connect.serpforge.io/api/oauth/google/callback` |
-| `BING_REDIRECT_URI` (only if it is set) | `https://connect.serpforge.io/api/oauth/bing/callback` |
-| `SUPPORT_EMAIL` | an address on the new domain, for example `support@serpforge.io` (make sure you can receive mail there), or leave your current one |
+| `GOOGLE_REDIRECT_URI` (**only if it already exists** in the list; if not, skip it: the app builds it from `NEXT_PUBLIC_APP_URL`) | `https://connect.serpforge.io/api/oauth/google/callback` |
+| `BING_REDIRECT_URI` (**only if it already exists**; if not, skip it, same reason) | `https://connect.serpforge.io/api/oauth/bing/callback` |
+| `SUPPORT_EMAIL` (optional) | only change it if it currently ends in `@visibll.in`: use an address you can receive mail at, for example `support@serpforge.io`. Otherwise leave it as it is. It is just the contact shown on `/privacy` |
 
 **Type must be Config for `NEXT_PUBLIC_…` variables.** In the Vercel form choose **Type: Config** (plain text), not **Secret**. Vercel refuses a Secret with a `NEXT_PUBLIC_` name and shows "Remove the public framework prefix to keep this value private…". Those values go to the visitor's browser by design, and these two are only web addresses. A variable already saved as Secret cannot be switched: **Remove** it (⋯ → Remove), then **Add New** with Type **Config** and Environments **Production**. Keep the real secrets (`GOOGLE_CLIENT_SECRET`, `SECRET_KEYS`, `SUPABASE_SERVICE_ROLE_KEY`, …) as **Secret**.
 
