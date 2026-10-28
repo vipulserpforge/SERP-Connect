@@ -1,7 +1,11 @@
 # Project Status
 
-**Last updated:** 19 October 2026
+**Last updated:** 28 October 2026
 **Current phase:** Phase 8 (Google Cloud setup guide and OAuth readiness tooling) over Phase 7 (whole-system verification) over Phase 6 (remote MCP server with OAuth) built on Phase 5 (shared reporting layer) built on Phase 4 (GA4 integration, mock APIs), Phase 3 (Search Console) and Phase 2 (secure credential management), and tested locally with mock Google. **Migrations 1-4 were applied to your Supabase project (`dphftsifxfhxbhtgabso`) on 19 Oct 2026 via the Supabase connection.** Supabase's advisors report no warnings: only INFO notes (server-only tables intentionally have RLS but no policies; unused indexes on an empty database; two composite foreign keys on `mcp_profile_properties` could get covering indexes later). Google Cloud / OAuth is still not configured (deliberately the final phase).
+
+## Deployment update (28 Oct 2026)
+
+The website is live on Vercel at `https://connect.serpforge.io` and the MCP server is live on the VPS at `https://mcp.serpforge.io`, moved from `visibll.in` (step-by-step in [`migration.md`](migration.md)). Checked from outside: both health endpoints answer, `pnpm mcp:check https://mcp.serpforge.io/mcp` finds no blocking problems (3 non-blocking warnings from Supabase's OAuth server settings), and the MCP server advertises `https://mcp.serpforge.io/mcp`. The Supabase audience hook uses that same address (migration `20261029100000_mcp_audience_hook_serpforge.sql`, applied). **Still not confirmed by a person:** a real Claude connection, email delivery through Mailtrap, the Google redirect on the new domain and the other items in [`ISSUES.md`](ISSUES.md), so the app is not yet declared production-ready.
 
 ## Production-readiness review (21 Oct 2026)
 

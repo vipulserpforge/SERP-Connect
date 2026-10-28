@@ -1,6 +1,6 @@
 # Open issues (things only a person can finish)
 
-Last updated: 21 October 2026
+Last updated: 28 October 2026
 
 This list holds everything that I could **not** safely fix or verify myself. I changed no live settings in Supabase, Google, Vercel or any server, and I made no destructive production changes.
 
@@ -11,19 +11,11 @@ This list holds everything that I could **not** safely fix or verify myself. I c
 - Each item says: what the problem is, why it matters, exactly what to do (and where to click), and how to check it worked.
 - When something is finished, move it to "Resolved" at the bottom and add the date. Claude can update this file for you.
 
-**Big picture:** the code is built, tested and works on my side. But it has **never been run on the real Vercel, on a real VPS, or with a real Claude connector**. So nothing here is "production-ready" yet. It is "ready to deploy and test". The steps for that are in [`docs/mcp-web.md`](docs/mcp-web.md).
+**Big picture (28 October 2026):** the website is live on Vercel at `https://connect.serpforge.io` and the MCP server is live on the VPS at `https://mcp.serpforge.io` (moved from `visibll.in`, see [`migration.md`](migration.md)). Both health checks answer and `pnpm mcp:check` finds no blocking problems. What is **still unconfirmed** is everything in items 2 to 7 below (Supabase OAuth Server and hook switch-on, Google redirect, email delivery, a real Claude connection, Google Testing mode), so the app is not yet declared production-ready.
 
 ---
 
 ## BLOCKERS
-
-### 1. Nothing has been deployed yet
-- **Problem:** The website has never been put on Vercel and the MCP server has never been put on a VPS. I tested the same steps on my computer (production build, production start, PM2, real database connection), but not on the real services.
-- **Why it matters:** Small differences on the real services (for example a Vercel setting) can still cause a failure on the first try.
-- **What to do:** Follow [`docs/mcp-web.md`](docs/mcp-web.md) from the top. If something fails, copy the error text (never passwords or keys) and give it to Claude.
-- **How to verify:**
-  - `https://connect.serpforge.io/api/health` shows `{"status":"ok"}`.
-  - `https://mcp.serpforge.io/healthz` shows `{"status":"ok"}`.
 
 ### 2. The Supabase "audience hook" is installed but not switched on
 - **Problem:** The function exists in your database, but Supabase does not use it until you switch it on.
@@ -193,6 +185,7 @@ Each of these was verified on my computer on 21 October 2026 unless noted.
 | R9 | **No linter.** | Added ESLint with bug-focused rules (forgotten `await`, unreachable code, unused variables) and ran it in CI (`.github/workflows/ci.yml`). | `pnpm lint` finishes with no errors. It found only test leftovers and one dead variable (fixed). |
 | R10 | **Unused code:** 4 unused package links (`@serp/provider-ga4` and `@serp/provider-gsc` in the MCP server; `@serp/contracts` in `packages/cache` and `packages/provider-google`), one dead variable in the Bing page, and dead lines in two tests. | Removed them. | Typecheck, lint, 785 tests, production builds and end-to-end tests all pass afterwards. |
 | R11 | **Hostinger build stopped on a pnpm version clash.** (Fixed on 21 October earlier.) | `pmOnFail: ignore` in `pnpm-workspace.yaml`. | Reproduced and fixed with pnpm 11.24. |
+| R13 | **Nothing was deployed.** (28 October 2026) | Website put on Vercel at `connect.serpforge.io`, MCP server on the VPS at `mcp.serpforge.io`, with HTTPS. The Supabase audience hook now uses `https://mcp.serpforge.io/mcp` (migration `20261029100000_mcp_audience_hook_serpforge.sql`, applied). | `connect.serpforge.io/api/health` and `mcp.serpforge.io/healthz` return `{"status":"ok"}`; `pnpm mcp:check https://mcp.serpforge.io/mcp` finds no blocking problems; the owner confirmed both subdomains work. |
 | R12 | **Documentation out of date or duplicated.** | Updated `README.md`, `PROJECT-STATUS.md`, `docs/DEPLOYMENT.md`, `docs/MCP.md`, `docs/SECRETS.md`, `.env.example`; added `docs/mcp-web.md`. Removed `docs/HOSTINGER-DEPLOY.md` (replaced by `mcp-web.md`) and `docs/GOOGLE-SETUP.md` (a technical copy of `GOOGLE-SETUP-SIMPLE.md`; its one unique table now lives in Part 12 of that guide). | No link to a removed file remains (checked by search). |
 
 ### Checked and found fine (no change needed)
