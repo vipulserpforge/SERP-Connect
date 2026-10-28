@@ -11,14 +11,14 @@ Found and fixed: the audience-hook migration broke 9 test files (it granted to a
 
 ## Earlier hosting decision: Hostinger Cloud plan
 
-This was the first plan (two Node.js Web Apps on a Hostinger Cloud plan); its step-by-step guide has been removed in favour of [`docs/mcp-web.md`](docs/mcp-web.md) (Vercel + VPS). The technical summary stays in [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md). Nothing was ever successfully deployed to Hostinger (the first build stopped on a pnpm version clash, now fixed).
+This was the first plan (two Node.js Web Apps on a Hostinger Cloud plan); its step-by-step guide has been removed in favour of [`docs/mcp-web.md`](docs/mcp-web.md) (Vercel + VPS).  Nothing was ever successfully deployed to Hostinger (the first build stopped on a pnpm version clash, now fixed).
 - Added `scripts/start-web.mjs` and `scripts/start-mcp.mjs` (Hostinger runs one root directory and an entry file; this is a monorepo). Both default `NODE_ENV` to production so the mock-mode safeguards cannot be skipped. Verified locally: both start the built apps (web serves `/`, `/privacy`, `/api/health`; MCP serves `/healthz` and the OAuth metadata), and tests show the MCP script refuses mock modes without `NODE_ENV`.
 - Unverified on Hostinger itself: building with the repository root as the root directory, Hostinger's pnpm version, port handling, domain attachment, number of Web Apps allowed on your plan, and cold starts after idle (Hostinger stops idle apps; Claude's connection step allows about 10 seconds).
 - Your latest work is **not committed or pushed** to GitHub yet; Hostinger deploys from GitHub, so that is the next prerequisite.
 
 ## Phase 9: Microsoft Clarity integration (19 Oct 2026)
 
-**Status: built and verified with mocks. NOT yet verified against the real Clarity API, so it is not marked production-ready.** Full details: [`docs/CLARITY.md`](docs/CLARITY.md). (There is no `DEPLOYMENT-GUIDE.md`; deployment steps live in `docs/DEPLOYMENT.md` and `docs/mcp-web.md`.)
+**Status: built and verified with mocks. NOT yet verified against the real Clarity API, so it is not marked production-ready.** Full details: [`docs/CLARITY.md`](docs/CLARITY.md). (Deployment steps live in `docs/mcp-web.md`.)
 
 Done:
 - Official Data Export API client (rolling 24/48/72 h, up to 3 dimensions, 1,000-row cap, 10 requests/day), validated, normalised, with 400/401/403/429/5xx/network/timeout handling and no automatic retries (each would cost quota).
@@ -39,7 +39,7 @@ Known limitations: quota count is app-tracked only; reset time (assumed UTC day)
 
 ## Phase 8: Google Cloud setup and OAuth readiness
 
-Guide: [`docs/GOOGLE-SETUP-SIMPLE.md`](docs/GOOGLE-SETUP-SIMPLE.md) (developer reference in its Part 12). Deployment: [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
+Guide: [`docs/GOOGLE-SETUP-SIMPLE.md`](docs/GOOGLE-SETUP-SIMPLE.md) (developer reference in its Part 12). Deployment: [`docs/mcp-web.md`](docs/mcp-web.md).
 
 **No Google Cloud project, OAuth client or credentials exist yet, and no real Google sign-in, token exchange, property discovery or report has been run.** The step-by-step guide is written from Google's current documentation (pages cited in the guide); I could not sign in to Google, so console clicks are unobserved.
 
@@ -58,7 +58,7 @@ You still need to (nothing below is done): create the project, enable the three 
 
 ## Phase 7: whole-system verification
 
-Method and data sources: [`docs/TESTING.md`](docs/TESTING.md). **Everything below was verified with mock or fake data. Nothing was verified against real Google APIs, a real Supabase Auth server, or a real Claude connector.**
+**Everything below was verified with mock or fake data. Nothing was verified against real Google APIs, a real Supabase Auth server, or a real Claude connector.**
 
 Results of a clean rebuild on 19 Oct 2026:
 
@@ -102,7 +102,7 @@ Details, tools, auth design and production checklist: [`docs/MCP.md`](docs/MCP.m
 
 ## Phase 5: reporting layer
 
-Design, pipeline, settings and limits: [`docs/REPORTING.md`](docs/REPORTING.md). One `ReportService` now serves the dashboard (`POST /api/reports/{gsc|ga4}`) and the MCP server.
+One `ReportService` now serves the dashboard (`POST /api/reports/{gsc|ga4}`) and the MCP server.
 
 | Area | State |
 |---|---|
@@ -123,7 +123,7 @@ Verification (19 Oct 2026, clean): `pnpm -r typecheck` 0 errors; `pnpm build` pa
 
 ## Phase 4: Google Analytics 4 integration
 
-Details, error table, live-verification checklist and the Google Cloud requirements for later: [`docs/GA4.md`](docs/GA4.md). Built and tested against **mock Analytics Admin and Data APIs**; no Google Cloud project or real account was used.
+Built and tested against **mock Analytics Admin and Data APIs**; no Google Cloud project or real account was used.
 
 | Area | State |
 |---|---|
@@ -138,13 +138,13 @@ Details, error table, live-verification checklist and the Google Cloud requireme
 
 Verification (19 Oct 2026): `pnpm typecheck` pass; `pnpm build` pass; `pnpm test` **375 / 375** (19 files; +115 for this phase and the shared refactor); `pnpm test:e2e` **18 / 18** (adds connecting GA4 after Search Console on one account in the built app). Three deliberate breakages (skipping the compatibility check, validating dates in UTC, sharing the metadata cache across tenants) each made tests fail, then were restored.
 
-**Needs live verification** (10 items in `docs/GA4.md`): real response shapes and quota bucket names, true compatibility semantics (the mock's rules are an approximation), error reasons, roll-up and sub-property behavior, per-request limits, and the dual-scope grant. Not built: Postgres report cache, comparisons, realtime/cohort reports, GSC-vs-GA4 comparison.
+**Needs live verification**: real response shapes and quota bucket names, true compatibility semantics (the mock's rules are an approximation), error reasons, roll-up and sub-property behavior, per-request limits, and the dual-scope grant. Not built: Postgres report cache, comparisons, realtime/cohort reports, GSC-vs-GA4 comparison.
 
 ---
 
 ## Phase 3: Google Search Console integration
 
-Details, error table and the live-verification checklist: [`docs/GSC.md`](docs/GSC.md). Built and tested against a **mock Search Console API**; no Google Cloud project or real account was used.
+Built and tested against a **mock Search Console API**; no Google Cloud project or real account was used.
 
 | Area | State |
 |---|---|
@@ -158,7 +158,7 @@ Details, error table and the live-verification checklist: [`docs/GSC.md`](docs/G
 
 Verification (19 Oct 2026): `pnpm typecheck` pass; `pnpm build` pass; `pnpm test` **260 / 260** (16 files, +103 for this phase); `pnpm test:e2e` **17 / 17** (now also covers connect -> discovery -> refresh -> disconnect in the built app). I broke three things on purpose (top-N ordering, the unverified-site filter, the Postgres ownership check); the tests failed each time, then I restored them.
 
-**Needs live verification** (not provable with mocks; full list of 10 items in `docs/GSC.md`): real `sites.list` and `searchAnalytics.query` shapes, quota and permission error reasons, `searchAppearance`/Discover dimension rules, filter semantics, `dataState` and incomplete-date metadata, and the dual-scope grant. Not built: pagination past one page, Postgres report cache, GA4.
+**Needs live verification** (not provable with mocks; 10 items): real `sites.list` and `searchAnalytics.query` shapes, quota and permission error reasons, `searchAppearance`/Discover dimension rules, filter semantics, `dataState` and incomplete-date metadata, and the dual-scope grant. Not built: pagination past one page, Postgres report cache, GA4.
 
 ---
 

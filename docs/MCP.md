@@ -127,7 +127,7 @@ Every tool has a description written for the model, a strict zod input schema (u
 - Tokens are verified locally against the issuer's JWKS: asymmetric algorithms only (HS*/none refused), issuer, audience, expiry, `sub` (UUID), role `authenticated`, not anonymous, and an OAuth `client_id` claim (so an ordinary browser-session JWT is not accepted as an MCP grant). `MCP_REQUIRED_SCOPES` is enforced when set (403 `insufficient_scope`).
 - Unauthenticated requests get `401` with `WWW-Authenticate: Bearer resource_metadata="..."`. Protected Resource Metadata (RFC 9728) is served at `/.well-known/oauth-protected-resource/mcp` (and the root form). If the identity provider's keys cannot be fetched the server answers `503` with `Retry-After`, not 401, so clients do not loop through re-authorization.
 - Browser requests with an `Origin` not in `MCP_ALLOWED_ORIGINS` get 403 (DNS-rebinding protection). Auth is checked before method handling.
-- A per-user concurrency limiter and the reporting layer's rate limits sit behind the tools ([`REPORTING.md`](REPORTING.md)).
+- A per-user concurrency limiter and the reporting layer's rate limits sit behind the tools.
 
 ### Authorization flow (checked against spec revision 2026-07-28 and Claude's connector docs)
 

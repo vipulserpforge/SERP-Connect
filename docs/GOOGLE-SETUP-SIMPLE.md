@@ -361,7 +361,7 @@ When asking for help, copy the **error message text**, but never the Client secr
 
 After Part 8 you have proven that Google sign-in, property listing and (via the dashboard report endpoint) reporting work with **your** Google project. Still ahead, in this order:
 
-1. Put the website (Vercel) and MCP server (VPS) online ([`mcp-web.md`](mcp-web.md)); overview in [`DEPLOYMENT.md`](DEPLOYMENT.md). Do this early: Google's review needs it.
+1. Put the website (Vercel) and MCP server (VPS) online ([`mcp-web.md`](mcp-web.md)). Do this early: Google's review needs it.
 2. Publish and submit for verification (Part 9c), then keep testing with your test users while you wait.
 3. Connect Claude to the MCP server ([`MCP.md`](MCP.md)): this needs Supabase's OAuth server switched on, which is currently off in your project. You can do this while Google reviews.
 

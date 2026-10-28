@@ -1,6 +1,6 @@
 # SEO Analytics MCP Connector
 
-Next.js dashboard plus a standalone Node.js MCP server that lets Claude query a user's Search Console, GA4, Clarity and Bing data. Requirements are in [`docs/PRD.md`](docs/PRD.md) and [`docs/TRD.md`](docs/TRD.md); current progress is in [`PROJECT-STATUS.md`](PROJECT-STATUS.md).
+Next.js dashboard plus a standalone Node.js MCP server that lets Claude query a user's Search Console, GA4, Clarity and Bing data. Current progress is in [`PROJECT-STATUS.md`](PROJECT-STATUS.md).
 
 Everything runs on **mock data** today. No Google Cloud project or provider credentials are needed.
 
@@ -43,7 +43,8 @@ packages/
   observability   Redacting JSON logger
 tests/            Tenant isolation and reporting tests
 supabase/         SQL migrations (schema, RLS, functions); see docs/SUPABASE-SETUP.md
-docs/             PRD, TRD, SECRETS.md (credentials), GSC.md (Search Console), GA4.md (Analytics), REPORTING.md (shared reporting layer), MCP.md (remote MCP server, auth, Claude setup), TESTING.md (what tests cover, mock vs real), GOOGLE-SETUP-SIMPLE.md (step-by-step Google Cloud setup for non-coders, with a developer reference at the end), DEPLOYMENT.md (services, order of work, variables), mcp-web.md (step-by-step: website on Vercel, MCP server on a VPS)
+docs/             SECRETS.md (credentials), MCP.md (remote MCP server, auth, Claude setup), CLARITY.md, BING.md, SUPABASE-SETUP.md, GOOGLE-SETUP-SIMPLE.md (step-by-step Google Cloud setup for non-coders, with a developer reference at the end), mcp-web.md (step-by-step: website on Vercel, MCP server on a VPS)
+migration.md      step-by-step guide for moving from visibll.in to serpforge.io
 ```
 
 Shared packages compile to `dist/` and expose only their public entry points, so both apps consume the same code.
