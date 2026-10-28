@@ -61,8 +61,8 @@ This list holds everything that I could **not** safely fix or verify myself. I c
 - **Problem:** Supabase's built-in email sender only delivers to people in your Supabase organization, and has very low limits.
 - **Why it matters:** A new customer who signs up never receives the confirmation email, so they cannot join. The app shows "We cannot send a confirmation email to that address yet."
 - **What to do:**
-  1. Create an account with an email-sending service (for example Resend, Brevo, Amazon SES or Postmark) and verify your domain `serpforge.io` there. They give you SMTP details (host, port, user, password).
-  2. Supabase dashboard → **Authentication** → **Emails** → **SMTP Settings** → turn on **Enable custom SMTP** and enter those details. Use a sender address such as `no-reply@serpforge.io`.
+  1. Create an account with Mailtrap (Email Sending) and verify the domain `connect.serpforge.io` there (exact DNS steps: `migration.md` section 1.5). They give you SMTP details (host, port, user, password).
+  2. Supabase dashboard → **Authentication** → **Emails** → **SMTP Settings** → turn on **Enable custom SMTP** and enter those details. Use the sender address `no-reply@connect.serpforge.io`.
   3. Click **Save**.
 - **How to verify:** Sign up on the live site with an email address that is **not** in your Supabase team. The confirmation email arrives, and its link opens `connect.serpforge.io`.
 

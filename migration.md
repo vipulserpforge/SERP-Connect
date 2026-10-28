@@ -7,9 +7,9 @@ A step-by-step guide for a non-coder. Follow it top to bottom and tick the boxes
 | Website (Vercel) | `connect.visibll.in` | `connect.serpforge.io` |
 | MCP server (VPS) | `mcp.visibll.in` | `mcp.serpforge.io` |
 | Connector link customers paste into Claude | `https://mcp.visibll.in/mcp` | `https://mcp.serpforge.io/mcp` |
-| Email sender | `no-reply@visibll.in` | `no-reply@serpforge.io` |
+| Email sender (Mailtrap sending domain) | `no-reply@visibll.in` | `no-reply@connect.serpforge.io` |
 
-`serpforge.io` itself (the bare domain, no `connect.` or `mcp.`) is a separate site on Hostinger and is **not** touched by this guide. Only two DNS records are added for the subdomains, plus the email records in 1.5 (where the SPF record must be edited, not duplicated).
+`serpforge.io` itself (the bare domain, no `connect.` or `mcp.`) is a separate site on Hostinger and is **not** touched by this guide. Only two DNS records are added for the subdomains, plus the five Mailtrap email records in 1.5. All of them live under `connect.` so your main site's email (SPF, MX) is not touched.
 
 ---
 
@@ -17,7 +17,7 @@ A step-by-step guide for a non-coder. Follow it top to bottom and tick the boxes
 
 ### What breaks if you skip a step
 
-Four things in this project are tied to the domain name. Miss one and that feature stops. Everything else keeps working.
+Five things in this project are tied to the domain name. Miss one and that feature stops. Everything else keeps working.
 
 | # | Where | What is tied to the domain | What breaks if you forget |
 |---|---|---|---|
@@ -25,6 +25,7 @@ Four things in this project are tied to the domain name. Miss one and that featu
 | 2 | **Google Cloud** | The allowed return address `.../api/oauth/google/callback` | "Connect Search Console / GA4" fails with `redirect_uri_mismatch` |
 | 3 | **Supabase** (website address) | Site URL and Redirect URLs | Sign-up and password-reset emails link to the old domain |
 | 4 | **Vercel** (website settings) | `NEXT_PUBLIC_APP_URL` and `NEXT_PUBLIC_MCP_URL` are saved into the website when it is built | Dashboard still shows the old connector link; Google/Bing return to the old domain |
+| 5 | **Mailtrap** (sign-up emails) | Mailtrap only sends from a domain it has verified. Supabase's sender must be on a verified domain | New users never get their confirmation email |
 
 Also: **the website code has the old address written in one file** (`apps/web/src/lib/mcp-url.ts`). Section 3 changes it.
 
@@ -61,7 +62,7 @@ If anything goes wrong, jump to section 12 (Rollback).
 
 - [ ] Login to **Hostinger** (hPanel), where `serpforge.io` DNS lives. Section 1 uses Hostinger's screens.
 - [ ] Login to your **Namecheap** (for `visibll.in`, needed later for redirects and for rollback).
-- [ ] Logins for **Vercel**, **Supabase**, **Google Cloud console**, **Bing Webmaster Tools** (only if you use "Connect with Bing"), your **email-sending service** (Resend/Brevo/SES/Postmark), and **Google Search Console**.
+- [ ] Logins for **Vercel**, **Supabase**, **Google Cloud console**, **Bing Webmaster Tools** (only if you use "Connect with Bing"), your **Mailtrap** account (Email Sending), and **Google Search Console**.
 - [ ] SSH login to the VPS: `ssh serp@172.93.223.194` (the IP from `docs/mcp-web.md`). Use `root` where the guide says so.
 - [ ] This project open in Claude Code on your Mac, with GitHub access.
 
@@ -115,15 +116,32 @@ nslookup mcp.serpforge.io 8.8.8.8
 
 **You should see** `172.93.223.194` in the answer. If you see "NXDOMAIN" or another IP, wait 10 minutes and try again. Do not continue to section 5 until this shows your VPS IP.
 
-### 1.5 Email records (later)
+### 1.5 Email records for Mailtrap (do this early: Mailtrap's review can take hours)
 
-Sending emails from `no-reply@serpforge.io` needs extra DNS records (SPF, DKIM). Your email-sending service lists them (section 6.4). Add them in the same Hostinger DNS records tab.
+Sign-up emails go out through **Mailtrap**. Mailtrap only sends from a domain you have proven you own. You will verify **`connect.serpforge.io`** (the same subdomain as the website), so the sender becomes `no-reply@connect.serpforge.io`. This keeps all the email records under `connect.` and leaves the SPF and mail (MX) records of your main `serpforge.io` untouched.
 
-**Watch out for SPF.** A domain may have only **one** SPF record (a TXT record whose value starts `v=spf1`). If `serpforge.io` already has one at Name `@` (Hostinger email usually adds `v=spf1 include:_spf.mail.hostinger.com ~all`), do **not** add a second one. Edit the existing one and insert the new service's `include:` before the `~all`, for example:
+1. Log in to Mailtrap → **Email Sending** → **Sending Domains** (<https://mailtrap.io/domains>) → **Add Domain**.
+2. Type `connect.serpforge.io` → **Add**. (Add the **new** one next to the old `visibll.in`; do not remove the old one yet.)
+3. Mailtrap shows a **Domain Verification** page with **five** records to add: **four CNAME** (Domain Verification, two DKIM, Custom Tracking Domain) and **one TXT** (DMARC). Do **not** type them from this guide. Copy the exact Type, Name and Value of each from that page (hover a record and click to copy).
+4. Add each one in Hostinger → `serpforge.io` → **DNS records** → **Add Record**.
 
-`v=spf1 include:_spf.mail.hostinger.com include:amazonses.com ~all`
+**The Hostinger Name box.** Mailtrap shows the full name, for example `abc123._domainkey.connect.serpforge.io`. In Hostinger's **Name** box type only the part **before** `.serpforge.io`, which here is `abc123._domainkey.connect`. Hostinger adds `.serpforge.io` by itself; if you type the full name it ends up doubled (`...serpforge.io.serpforge.io`) and never verifies. Paste the **Value** exactly as shown.
 
-(use the exact `include:` text your sending service gives you). Two SPF records make both fail, which would hurt email for your main site too. Leave the existing MX (mail) records alone.
+**Record names to expect** (sit under `connect`, never at `connect` itself):
+
+| Mailtrap record | Type | Name looks like (what you type in Hostinger) |
+|---|---|---|
+| Domain Verification | CNAME | `something.connect` |
+| DKIM (two) | CNAME | `something._domainkey.connect` |
+| Custom Tracking Domain | CNAME | `something.connect` |
+| DMARC | TXT | `_dmarc.connect` |
+
+> **Stop if** any Mailtrap record has a Name that is exactly `connect.serpforge.io` (so you would type just `connect`). Your website already uses a `connect` CNAME that points to Vercel, and a name cannot hold that CNAME and another record. Do not delete the Vercel record. Ask Claude with the record list from Mailtrap (no secrets in it).
+
+5. Back in Mailtrap click **Re-check DNS Records**. Mailtrap also rechecks by itself every hour. Dots turn from red to green (Status **Verified**).
+6. Mailtrap then asks for **Sender information** (business or personal details; once per account, you may already have done it for `visibll.in`) and runs an automatic **Compliance Check**. Some domains get a manual review. The domain must show **Verified** before you switch Supabase over in 6.4.
+
+Because the DNS lookup is quick but the Mailtrap review is not, do this as soon as section 1.2 is done.
 
 ---
 
@@ -134,6 +152,7 @@ Before changing anything, save what works today.
 - [ ] In Vercel → your project → **Settings** → **Environment Variables**, take a screenshot of all names and (for the non-secret ones) values. Keep it in `~/Documents/private-serp/`.
 - [ ] On the VPS, run `cp ~/mcp.env ~/mcp.env.visibll-backup` (one line, as the `serp` user).
 - [ ] In Supabase → **Authentication** → **URL Configuration**, screenshot the Site URL and Redirect URLs.
+- [ ] In Supabase → **Authentication** → **Emails** → **SMTP Settings**, screenshot the host, port, username and sender (**not** the password). Note where the old Mailtrap token is saved.
 - [ ] In Google Cloud → **Google Auth Platform** → **Clients** → your client, screenshot **Authorized redirect URIs**.
 
 This is your Rollback kit (section 12).
@@ -374,21 +393,30 @@ If the page asks for a **Site URL**, it uses the value from 6.1.
 
 **Authentication** → **Hooks** → *Customize Access Token (JWT) Claims* is **on**, function `public.custom_access_token_hook`. The function itself was updated in 5.5.
 
-### 6.4 Sending email from the new domain
+### 6.4 Sending email from the new domain (Mailtrap)
 
-Without this, confirmation emails still say "from visibll.in".
+Without this, confirmation emails still say "from visibll.in". Do this only after Mailtrap shows `connect.serpforge.io` as **Verified** (1.5).
 
-1. In your email-sending service (Resend, Brevo, SES or Postmark) **add the domain `serpforge.io`**. It shows you DNS records (SPF, DKIM and sometimes DMARC).
-2. Add each record in the Hostinger **DNS records** tab. Quirk: in the **Name** box type only the part before `.serpforge.io` (for example `resend._domainkey`, not `resend._domainkey.serpforge.io`). For SPF, **edit the existing `v=spf1` record** instead of adding another (see 1.5).
-3. Wait until the service shows **Verified** (minutes to a few hours).
-4. Supabase → **Authentication** → **Emails** → **SMTP Settings**: change the **Sender email** to `no-reply@serpforge.io` (keep the host, port, user and password unless the service gave you new ones for the new domain). **Save**.
-5. **Authentication** → **Emails** → **Templates**: look at *Confirm sign up* and *Reset password*. If any template has text with the old domain or name hard-coded, change it. Links using `{{ .ConfirmationURL }}` pick up the new Site URL by themselves.
+1. In Mailtrap → **Sending Domains** → click `connect.serpforge.io` → **Integration** → **SMTP**. Note the **Host**, **Port**, **Username** and **Password** it shows (typically host `live.smtp.mailtrap.io`, port `587`, username `api`; always trust what the page shows).
+2. The password is an **API token**. If your existing token is limited to the old `visibll.in` domain, it will be refused for the new one. In Mailtrap → **Settings** → **API Tokens** → **Add Token**, give it access to `connect.serpforge.io` (Email Sending), and use that token as the password. Keep it private (never paste it in a chat or commit it).
+3. Supabase → **Authentication** → **Emails** → **SMTP Settings** (custom SMTP stays on) and change:
 
-Do **not** remove `visibll.in` from the email service yet. You may still need to send from it until section 11.
+   | Field | New value |
+   |---|---|
+   | Sender email | `no-reply@connect.serpforge.io` |
+   | Sender name | unchanged (for example `SERP Connect`) |
+   | Host / Port | from Mailtrap (step 1) |
+   | Username | from Mailtrap (step 1) |
+   | Password | the API token from step 2 |
+
+   **Save.**
+4. **Authentication** → **Emails** → **Templates**: look at *Confirm sign up* and *Reset password*. If any template has text with the old domain hard-coded, change it. Links using `{{ .ConfirmationURL }}` pick up the new Site URL by themselves.
+
+Do **not** remove `visibll.in` from Mailtrap yet. Section 11.4 removes it, after a week of proof that nothing still sends from it.
 
 ### 6.5 Test sign-up
 
-On `https://connect.serpforge.io`, sign up with an email that is **not** in your Supabase team. The email must arrive (check spam) and its button must open `connect.serpforge.io`. Then log in.
+On `https://connect.serpforge.io`, sign up with a non-Gmail address (for example a Yahoo or work address) that is **not** in your Supabase team. The email must arrive (check spam), show the sender `no-reply@connect.serpforge.io`, and its button must open `connect.serpforge.io`. In Mailtrap → **Email Logs** you should see it as **Delivered**. Then log in.
 
 ---
 
@@ -460,7 +488,7 @@ Nothing to change. Customers paste their own Clarity token; no web address is re
 ### 8.1 Website
 
 - [ ] `https://connect.serpforge.io/api/health` → `{"status":"ok"}`
-- [ ] Sign up works; the email arrives from `no-reply@serpforge.io`; its link opens `connect.serpforge.io`
+- [ ] Sign up works; the email arrives from `no-reply@connect.serpforge.io` (and shows in Mailtrap Email Logs); its link opens `connect.serpforge.io`
 - [ ] Log in and log out work
 - [ ] Dashboard shows the connector link `https://mcp.serpforge.io/mcp`
 - [ ] **Connect Search Console**, **Connect GA4** work (no `redirect_uri_mismatch`)
@@ -490,6 +518,9 @@ Nothing to change. Customers paste their own Clarity token; no web address is re
 | `redirect_uri_mismatch` | The Google line in 7.1 is missing, has a typo, or has not applied | Fix and wait 5 minutes |
 | Sign-up email link opens `visibll.in` | Supabase Site URL not changed | 6.1, then request a new email (old emails keep the old link) |
 | Sign-up email says "from visibll.in" | SMTP sender not changed | 6.4 |
+| Mailtrap shows a record as **Missing** | Name typed in full (doubled `.serpforge.io`), a typo, or DNS not yet refreshed | Compare with Mailtrap, fix the Name (1.5), wait 15 minutes, click **Re-check DNS Records** |
+| Sign-up shows "error sending confirmation email" | Mailtrap domain not Verified yet, or the API token is not allowed for the new domain, or the sender address is not on the verified domain | Check Mailtrap → Sending Domains status, create a new token (6.4 step 2), and make sure the sender is exactly `no-reply@connect.serpforge.io`. Supabase → **Logs** → **Auth** shows the exact error |
+| Email lands in spam | DMARC or tracking record missing | All five Mailtrap records must show Verified (1.5) |
 | Dashboard still shows `mcp.visibll.in` | Website not rebuilt after the settings change | Vercel → Deployments → ⋯ → **Redeploy** (4.5). Check 3 (`mcp-url.ts`) was merged |
 | `https://mcp.serpforge.io` shows "502 Bad Gateway" | MCP server is not running | On the VPS run `pm2 status` then `pm2 logs serp-mcp --lines 50` and give Claude the error text (never the `mcp.env` contents) |
 | `nginx -t` complains about `limit_req_zone` "already defined" | The line exists in both site files | Delete it from the new file (5.2) |
@@ -538,9 +569,15 @@ nginx -t && systemctl reload nginx
 
 Keep the file in `sites-available/` as a backup if you like. The old certificate stops renewing; that is fine.
 
-### 11.4 Email
+### 11.4 Mailtrap: remove the old `visibll.in`
 
-Remove `visibll.in` from the email service only if you no longer need to send or receive from it. Delete the DNS records for the old subdomains at Namecheap only when you are sure (the domain registration itself is your decision; keeping it for a year protects your old links).
+Do this only after a week with no email problems, and after confirming Supabase's **SMTP Settings** show `no-reply@connect.serpforge.io` (not `visibll.in`). Also make sure nothing else you run (another app, a form, a newsletter) still sends from `@visibll.in`.
+
+1. Mailtrap → **Sending Domains** → `visibll.in` → **Delete** (the domain's settings/menu). Mailtrap stops accepting mail from it.
+2. Mailtrap → **Settings** → **API Tokens**: delete the old token that was used for `visibll.in`.
+3. Namecheap → Domain List → **Manage** `visibll.in` → **Advanced DNS**: delete the Mailtrap records you added for it (the four CNAME records and the `_dmarc` TXT record: Domain Verification, two DKIM, tracking, DMARC). Compare each with what Mailtrap showed for the old domain; delete only those.
+4. Leave the Namecheap records for the website redirect and anything else in place. Keeping the `visibll.in` registration for a year protects old links.
+5. In Hostinger, you keep the five new records for `connect.serpforge.io`. Do not delete them.
 
 ### 11.5 Keep your own records tidy
 
@@ -567,6 +604,10 @@ Vercel → **Settings** → **Environment Variables**: set `NEXT_PUBLIC_APP_URL=
 
 Customers who added the new connector in the meantime would need to re-add the old one.
 
+### Email rolled back
+
+Supabase → **Authentication** → **Emails** → **SMTP Settings**: set the sender back to `no-reply@visibll.in` and the password to the old Mailtrap token. This works as long as you have not yet done section 11.4.
+
 ### Google
 
 The old redirect line was never removed (until section 11), so the old website keeps working.
@@ -582,7 +623,7 @@ Stop changing things. Copy the **exact error text** (never keys or passwords) an
 **DNS**
 - [ ] `mcp.serpforge.io` → VPS IP
 - [ ] `connect.serpforge.io` → Vercel
-- [ ] Email records (SPF/DKIM) added and verified
+- [ ] Five Mailtrap records for `connect.serpforge.io` added in Hostinger (4 CNAME + 1 TXT) and shown **Verified** in Mailtrap
 
 **Code**
 - [ ] `mcp-url.ts`, `deploy/vps/*` and docs updated
@@ -605,13 +646,18 @@ Stop changing things. Copy the **exact error text** (never keys or passwords) an
 - [ ] Hook is switched on
 - [ ] Site URL + Redirect URL for `connect.serpforge.io`
 - [ ] OAuth Server on, path `/oauth/consent`, Dynamic Client Registration on
-- [ ] Sender email `no-reply@serpforge.io`
+- [ ] SMTP settings use Mailtrap with sender `no-reply@connect.serpforge.io` and a token for the new domain
 
 **Google Cloud**
 - [ ] Redirect URI `https://connect.serpforge.io/api/oauth/google/callback`
 - [ ] Branding: home page, privacy link, authorized domain `serpforge.io`
 - [ ] `serpforge.io` verified in Search Console
 - [ ] (App stays in Testing mode: no re-verification needed)
+
+**Mailtrap**
+- [ ] `connect.serpforge.io` added and Verified (Compliance Check passed)
+- [ ] Test sign-up with a non-Gmail address delivered
+- [ ] After a week: old `visibll.in` domain, old token and old DNS records removed
 
 **Final**
 - [ ] Section 8 tests pass

@@ -48,7 +48,7 @@ Tested on my computer, in a clean copy of the project:
 | **Vercel account** | Free signup at <https://vercel.com> (use "Continue with GitHub"). See the note on plans below. |
 | **A VPS** | **Done:** you bought a Coral VPS from ewebGuru with Ubuntu 24. IP `172.93.223.194`, user `root`, password in their email. (Needs 1 GB RAM minimum, 2 GB comfortable.) |
 | **Hostinger login** | Your domain `serpforge.io` has its DNS at Hostinger (hPanel → Domains → Manage → DNS records; exact steps in [`../migration.md`](../migration.md) section 1). You will add two DNS records there: `mcp` (to the VPS) and `connect` (to Vercel). |
-| **An email-sending service (SMTP)** | For sign-up and password emails (section 7.5). Free options: Resend, Brevo. |
+| **Mailtrap (Email Sending, SMTP)** | For sign-up and password emails (section 7.5). Domain setup is in [`../migration.md`](../migration.md) sections 1.5 and 6.4. |
 | **Your two settings files** | `~/Documents/private-serp/web.env` and `~/Documents/private-serp/mcp.env` (already created). |
 | **A Mac Terminal** | Press **Cmd + Space**, type `Terminal`, press Enter. You paste commands into it. |
 
@@ -490,10 +490,10 @@ Do this **after** 6.5 works and 7.1 is saved.
 Why: Supabase's built-in email sender only delivers to people in your own Supabase team and is limited to a few emails per hour. Real customers will not get their confirmation email without your own sender.
 
 1. Create a free account at an email service, for example <https://resend.com> or <https://brevo.com>.
-2. In that service add your domain **`serpforge.io`** and follow its steps. It shows you a few DNS records (SPF, DKIM, sometimes DMARC). **Add each one in Namecheap → Advanced DNS → Add New Record**, then wait until the service says **Verified**. Namecheap quirk: in the **Host** box type only the part before `.serpforge.io` (for example `resend._domainkey`, not `resend._domainkey.serpforge.io`).
+2. In Mailtrap add the sending domain **`connect.serpforge.io`**. It shows four CNAME records and one DMARC TXT record. Add each one in **Hostinger → DNS records** (type only the part before `.serpforge.io` in the Name box), then wait until Mailtrap says **Verified**. Full steps: [`../migration.md`](../migration.md) section 1.5.
 3. In that service create SMTP credentials. You get: **host**, **port** (use `465` or `587`), **username**, **password**.
 4. Supabase → **Authentication** → **Emails** (or **Settings**) → **SMTP Settings** → turn on **Enable custom SMTP** and enter:
-   - **Sender email:** `no-reply@serpforge.io`
+   - **Sender email:** `no-reply@connect.serpforge.io`
    - **Sender name:** `SERP Connect`
    - **Host / Port / Username / Password:** from step 3
 5. Click **Save**.
