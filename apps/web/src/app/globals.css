@@ -30,8 +30,13 @@
 
 html {
   color-scheme: dark;
-  scroll-behavior: smooth;
   scroll-padding-top: 6rem;
+}
+/* Smooth anchor scrolling only for people who have not asked for less motion. */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
 }
 
 body {
@@ -44,6 +49,31 @@ body {
   background-size: auto, auto, 56px 56px, 56px 56px;
   color: var(--fg);
   font-family: var(--font-sans);
+}
+
+/* Tailwind v4 resets buttons to the arrow cursor: restore the hand on anything clickable. */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="tab"],
+  summary,
+  select,
+  label:has(input[type="checkbox"], input[type="radio"]) {
+    cursor: pointer;
+  }
+  button:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+  /* Removes the double-tap-to-zoom wait on touch screens, so taps respond immediately. */
+  a,
+  button,
+  summary,
+  select,
+  [role="button"],
+  [role="tab"] {
+    touch-action: manipulation;
+  }
 }
 
 @layer components {
@@ -135,44 +165,7 @@ summary:focus-visible {
   outline-offset: 2px;
 }
 
-/* ---- hero artwork: the logo's two overlapping rounded squares, as liquid glass ---- */
-.glass-shape {
-  position: absolute;
-  border-radius: 26%;
-  /* A soft top-left specular bloom over a teal body that warms toward orange at the far corner. */
-  background:
-    radial-gradient(120% 90% at 16% 6%, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0) 40%),
-    linear-gradient(150deg, rgba(171, 220, 214, 0.16), rgba(15, 163, 163, 0.05) 55%, rgba(255, 122, 0, 0.07));
-  box-shadow:
-    inset 0 1.5px 0 rgba(255, 255, 255, 0.5),
-    inset 0 -26px 46px rgba(0, 0, 0, 0.28),
-    inset 0 0 48px rgba(171, 220, 214, 0.12),
-    0 40px 90px rgba(0, 0, 0, 0.55);
-  /* Blurs and saturates the grid behind it, which is what makes it read as thick glass. */
-  backdrop-filter: blur(16px) saturate(1.6);
-  -webkit-backdrop-filter: blur(16px) saturate(1.6);
-}
-/* A gradient rim cut out of the square's edge, like light catching thick glass. */
-.glass-shape::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  padding: 7px;
-  background: conic-gradient(from 200deg, rgba(171, 220, 214, 0.7), rgba(255, 255, 255, 0.06) 22%, rgba(255, 122, 0, 0.5) 45%, rgba(15, 163, 163, 0.45) 62%, rgba(255, 255, 255, 0.08) 80%, rgba(171, 220, 214, 0.7));
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-}
-/* A diagonal sheen across the face, the way a curved pane reflects a window. */
-.glass-shape::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: linear-gradient(115deg, transparent 28%, rgba(255, 255, 255, 0.13) 44%, rgba(255, 255, 255, 0.03) 52%, transparent 62%);
-  pointer-events: none;
-}
+/* ---- hero artwork ---- */
 /* A small glass bead for depth next to the big panes. */
 .glass-bead {
   position: absolute;
@@ -200,15 +193,225 @@ summary:focus-visible {
   filter: blur(8px);
 }
 
+/* ---- hero craft: eyebrow, headline, CTAs, trust row, ambient light, double bezel ---- */
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  border-radius: 9999px;
+  padding: 0.35rem 0.4rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--teal);
+  background: linear-gradient(180deg, rgba(171, 220, 214, 0.1), rgba(171, 220, 214, 0.03));
+  box-shadow:
+    inset 0 0 0 1px rgba(171, 220, 214, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+.eyebrow-logo {
+  display: flex;
+  width: 1.75rem;
+  height: 1.75rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0.3rem;
+  border-radius: 0.5rem;
+  background: #fff;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.5),
+    0 4px 10px -2px rgba(0, 0, 0, 0.5);
+}
+.hero-title {
+  letter-spacing: -0.035em;
+  /* Pure white fading to a soft grey-green at the foot of the line, so the type has depth instead of sitting flat. */
+  background: linear-gradient(180deg, #fff 35%, rgba(205, 232, 227, 0.78));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.hero-title .accent {
+  letter-spacing: -0.02em;
+  /* The highlighted phrase: brand teal warming into brand orange, like a lit filament. */
+  background: linear-gradient(100deg, var(--teal) 0%, #ffffff 42%, #ffb26b 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.cta-primary,
+.cta-ghost {
+  display: inline-flex;
+  min-height: 3.5rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.875rem;
+  border-radius: 9999px;
+  font-size: 1rem;
+  font-weight: 600;
+  transition:
+    transform 0.6s var(--ease),
+    background-color 0.4s var(--ease),
+    box-shadow 0.6s var(--ease);
+}
+.cta-primary {
+  padding: 0.5rem 0.5rem 0.5rem 1.75rem;
+  color: #1a0e00;
+  background: linear-gradient(180deg, #ff8a1f, var(--brand));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    0 0 0 1px rgba(255, 122, 0, 0.5),
+    0 10px 34px -6px rgba(255, 122, 0, 0.55);
+}
+.cta-primary:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 0 0 1px rgba(255, 143, 38, 0.7),
+    0 18px 44px -8px rgba(255, 122, 0, 0.65);
+}
+.cta-primary:active,
+.cta-ghost:active {
+  transform: scale(0.98);
+}
+.cta-icon {
+  display: flex;
+  width: 2.5rem;
+  height: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: rgba(26, 14, 0, 0.9);
+  color: #ffb26b;
+  transition: transform 0.6s var(--ease);
+}
+.cta-primary:hover .cta-icon {
+  transform: translate(2px, -1px) scale(1.06);
+}
+.cta-ghost {
+  padding: 0.5rem 1.75rem;
+  color: var(--fg);
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+.cta-ghost:hover {
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  transform: translateY(-2px);
+}
+.trust {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+.trust li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.trust svg {
+  color: var(--teal);
+  flex: none;
+}
+/* The hero's own backdrop: base colour, a faint grid, soft light and a tilted green drop. It fades to nothing at the foot, so the
+   page's regular grid and the next section take over without a visible edge. Static gradients only: nothing repaints on scroll. */
+.hero-ambient {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(640px 420px at 18% 22%, rgba(15, 163, 163, 0.12), transparent 70%),
+    radial-gradient(560px 380px at 88% 8%, rgba(255, 122, 0, 0.08), transparent 72%),
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: auto, auto, 56px 56px, 56px 56px;
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 45%, transparent 100%);
+  mask-image: linear-gradient(180deg, #000 0%, #000 45%, transparent 100%);
+}
+/* A long ellipse of green light, tilted like a beam falling across the top-left, kept faint on purpose. */
+.hero-ambient::before {
+  content: "";
+  position: absolute;
+  left: -8%;
+  top: 4%;
+  width: 52%;
+  height: 46%;
+  transform: rotate(-24deg);
+  background: radial-gradient(closest-side, rgba(40, 214, 160, 0.11), rgba(15, 163, 163, 0.05) 55%, transparent 100%);
+}
+/* Source logos recoloured to the brand's dark teal: desaturated, then tinted, so they sit in the page instead of shouting. */
+.source-logo {
+  display: flex;
+  width: 2.75rem;
+  height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0.55rem;
+  border-radius: 0.75rem;
+  background: linear-gradient(180deg, rgba(15, 163, 163, 0.24), rgba(15, 163, 163, 0.1));
+  box-shadow: inset 0 0 0 1px rgba(171, 220, 214, 0.16);
+}
+/* Transparent-background marks, desaturated and tinted teal so they take on the page's colour. */
+.source-logo img {
+  filter: grayscale(1) sepia(1) hue-rotate(120deg) saturate(1.8) brightness(1.15);
+  opacity: 0.95;
+}
+/* The Search Console and Bing marks are darker blues, so they get a lift to match GA4 and Clarity. */
+.source-logo img[src*="-clear"] {
+  filter: grayscale(1) sepia(1) hue-rotate(120deg) saturate(1.8) brightness(1.9) contrast(1.1);
+}
+/* Outer tray around the glass plate: hairline edge, inset highlight, concentric corner. */
+.bezel {
+  border-radius: 28px;
+  padding: 8px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02));
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 50px 100px -30px rgba(0, 0, 0, 0.7);
+}
+
+/* Pending-state spinner for SubmitButton: a compositor-only rotation, no layout work. */
+.spinner {
+  width: 1em;
+  height: 1em;
+  flex: none;
+  border-radius: 9999px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+}
+@keyframes spin-ring {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .spinner {
+    animation: spin-ring 0.7s linear infinite;
+  }
+}
+button:disabled[aria-busy="true"] {
+  opacity: 0.75;
+}
+
 /* ---- motion: transform and opacity only; all of it off for reduced motion ---- */
 @keyframes rise {
   from {
     opacity: 0;
     transform: translateY(24px);
+    filter: blur(8px);
   }
   to {
     opacity: 1;
     transform: none;
+    filter: blur(0);
   }
 }
 @keyframes drift-a {
@@ -285,6 +488,40 @@ details[open] .chev {
 }
 .hf-out {
   --c: #ff8a1f;
+}
+/* Fine dot texture behind the diagram, faded toward the edges so it reads as depth rather than pattern. */
+.hf-dots {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.11) 1px, transparent 1.2px);
+  background-size: 22px 22px;
+  -webkit-mask-image: radial-gradient(ellipse 70% 65% at 50% 48%, #000 25%, transparent 75%);
+  mask-image: radial-gradient(ellipse 70% 65% at 50% 48%, #000 25%, transparent 75%);
+}
+/* A small "connected" light on each source's logo. */
+.hf-live {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: 24%;
+  height: 24%;
+  border-radius: 9999px;
+  background: #34d399;
+  box-shadow: 0 0 0 2px #0b1f1d, 0 0 8px rgba(52, 211, 153, 0.8);
+}
+/* The travelling light on each connector. Shown as a short static glint when motion is reduced. */
+.hf-pulse {
+  stroke-dasharray: 9 91;
+  stroke-dashoffset: -45;
+  filter: drop-shadow(0 0 4px currentColor);
+}
+@keyframes hf-travel {
+  from {
+    stroke-dashoffset: 9;
+  }
+  to {
+    stroke-dashoffset: -100;
+  }
 }
 /* A dashed line that flows when motion is allowed; static dashes otherwise. */
 .hf-line {
@@ -398,6 +635,9 @@ details[open] .chev {
 }
 
 @media (prefers-reduced-motion: no-preference) {
+  .hf-pulse {
+    animation: hf-travel 3.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
   .hf-line {
     animation: hf-flowx 0.7s linear infinite, hf-lineon 7s linear infinite;
   }

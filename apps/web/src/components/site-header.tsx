@@ -3,6 +3,7 @@ import { signOutAction } from "@/app/actions";
 import { Logo } from "@/components/logo";
 import { MCP_URL } from "@/lib/mcp-url";
 import { getSessionUser } from "@/lib/server";
+import { SubmitButton } from "@/components/submit-button";
 
 const NAV: Array<{ href: string; label: string; external?: boolean }> = [
   { href: "/", label: "Home" },
@@ -56,7 +57,7 @@ export async function SiteHeader() {
             {signedIn ? (
               <>
                 <form action={signOutAction}>
-                  <button className={navLink}>Sign out</button>
+                  <SubmitButton className={navLink}>Sign out</SubmitButton>
                 </form>
                 <Link href="/dashboard" className="btn-primary">
                   Dashboard
@@ -101,7 +102,7 @@ export async function SiteHeader() {
                       Dashboard
                     </Link>
                     <form action={signOutAction}>
-                      <button className="btn-ghost w-full">Sign out</button>
+                      <SubmitButton className="btn-ghost w-full">Sign out</SubmitButton>
                     </form>
                   </>
                 ) : (

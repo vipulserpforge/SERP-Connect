@@ -1,5 +1,6 @@
 import "server-only";
 import { redirect } from "next/navigation";
+import { cache } from "react";
 import { BingConnectionService, ClarityConnectionService, CredentialService, OAuthFlowService, PropertyDiscoveryService, createLiveAdapters } from "@serp/credentials";
 import { ConnectorException, isConnectorException } from "@serp/contracts";
 import {
@@ -160,9 +161,10 @@ export interface SessionUser {
 
 /**
  * Resolves the caller from a verified session. Uses auth.getUser(), which validates the token with
- * the Auth server, rather than trusting cookie contents. Fails closed.
+ * the Auth server, rather than trusting cookie contents. Fails closed. Memoised per request, so the
+ * header and the page share one Auth round trip.
  */
-export async function getSessionUser(): Promise<SessionUser> {
+export const getSessionUser = cache(async (): Promise<SessionUser> => {
   const env = getEnv();
   if (env.AUTH_MODE === "mock") return { userId: MOCK_USER_A_ID, email: "demo@example.com", mock: true };
 
@@ -170,7 +172,7 @@ export async function getSessionUser(): Promise<SessionUser> {
   const { data, error } = await supabase.auth.getUser();
   if (error || !data.user) throw new ConnectorException("AUTH_REQUIRED", "Sign in to continue.");
   return { userId: data.user.id, email: data.user.email ?? null, mock: false };
-}
+});
 
 /** For pages and server actions: returns the user or redirects to /login. Call it in every protected page. */
 export async function requireUser(nextPath = "/dashboard"): Promise<SessionUser> {

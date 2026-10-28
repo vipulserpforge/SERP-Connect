@@ -12,7 +12,10 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
   let response = NextResponse.next({ request });
   let signedIn = env.AUTH_MODE === "mock";
 
-  if (env.AUTH_MODE === "supabase") {
+  // No Supabase auth cookie means no session, so public pages and first-time visitors skip the Auth server round trip.
+  const hasSessionCookie = request.cookies.getAll().some((c) => c.name.startsWith("sb-") && c.name.includes("-auth-token"));
+
+  if (env.AUTH_MODE === "supabase" && hasSessionCookie) {
     const supabase = createServerClient(env.NEXT_PUBLIC_SUPABASE_URL!, env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
       cookies: {
         getAll: () => request.cookies.getAll(),

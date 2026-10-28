@@ -3,6 +3,7 @@ import { AUTH_ERRORS, AUTH_NOTICES, isAuthErrorCode, isAuthNoticeCode } from "@s
 import { signInWithGoogleAction } from "@/app/actions";
 import { AnswerCard } from "@/components/answer-card";
 import { EXAMPLES } from "@/components/examples";
+import { SubmitButton } from "@/components/submit-button";
 
 interface Props {
   mode: "login" | "signup";
@@ -99,7 +100,7 @@ export function AuthForm({ mode, action, error, notice, next }: Props) {
                   className="field font-normal"
                 />
               </label>
-              <button className="btn-primary !min-h-12 w-full text-base">{isLogin ? "Sign in" : "Sign up"}</button>
+              <SubmitButton className="btn-primary !min-h-12 w-full text-base">{isLogin ? "Sign in" : "Sign up"}</SubmitButton>
             </form>
             <p className="muted order-2 my-5 flex items-center gap-3 text-xs">
               <span className="h-px flex-1" style={{ background: "var(--line)" }} />
@@ -107,10 +108,10 @@ export function AuthForm({ mode, action, error, notice, next }: Props) {
               <span className="h-px flex-1" style={{ background: "var(--line)" }} />
             </p>
             <form action={signInWithGoogleAction} className="order-1">
-              <button className="btn-ghost !min-h-12 w-full">
+              <SubmitButton className="btn-ghost !min-h-12 w-full">
                 <GoogleMark />
                 Continue with Google
-              </button>
+              </SubmitButton>
             </form>
           </div>
         </div>

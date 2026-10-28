@@ -47,11 +47,14 @@ const QUESTION = "Which pages drive the most organic traffic?";
 const ANSWER = "Spam Score Checker leads, 360 clicks";
 
 /** Data sources sit on a white tile (their marks are made for light grounds); AI apps' marks are full-bleed app icons. */
-function Tile({ brand, bare = false, size, radius, inset }: { brand: Brand; bare?: boolean; size: string; radius: string; inset: string }) {
+function Tile({ brand, bare = false, size, radius, inset, live = false }: { brand: Brand; bare?: boolean; size: string; radius: string; inset: string; live?: boolean }) {
   const logo = LOGO[brand];
   return (
-    <span className="flex shrink-0 items-center justify-center overflow-hidden" style={{ width: size, height: size, borderRadius: radius, background: bare ? "transparent" : "#fff", padding: bare ? 0 : inset }}>
-      <Mark src={logo.src} alt={logo.alt} fill={bare} />
+    <span className="relative flex shrink-0" style={{ width: size, height: size }}>
+      <span className="flex h-full w-full items-center justify-center overflow-hidden" style={{ borderRadius: radius, background: bare ? "transparent" : "#fff", padding: bare ? 0 : inset }}>
+        <Mark src={logo.src} alt={logo.alt} fill={bare} />
+      </span>
+      {live && <span aria-hidden="true" className="hf-live" />}
     </span>
   );
 }
@@ -77,19 +80,66 @@ const Box = ({ left, top, width, height, className = "", children }: { left: num
   </div>
 );
 
-const Line = ({ kind, dir, left, top, size, delay }: { kind: "in" | "out"; dir: "h" | "dn" | "up"; left: number; top: number; size: number; delay?: number }) => (
-  <div
-    aria-hidden="true"
-    className={`hf-line hf-${kind} ${dir === "h" ? "" : `hf-v hf-${dir}`}`}
-    style={{ left: x(left), top: y(top), ...(dir === "h" ? { width: x(size) } : { height: y(size) }), ...(delay !== undefined && { animationDelay: `${delay}s` }) }}
-  />
-);
+const cardStyle = {
+  background: "linear-gradient(180deg, rgba(255,255,255,0.085), rgba(255,255,255,0.035))",
+  boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.11), inset 0 1px 0 rgba(255,255,255,0.14), 0 10px 24px -12px rgba(0,0,0,0.6)",
+} as const;
 
-const cardStyle = { background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.16)" } as const;
+/** Curved connectors: a faint rail for each route plus a short light that travels along it. Desktop canvas only (700 x 560). */
+const IN_Y = [132, 212, 292, 372];
+const OUT_Y = [196, 308];
+const HUB = { x: 350, y: 252 };
+const inPath = (y: number) => `M216 ${y} C 262 ${y}, 250 ${HUB.y}, 290 ${HUB.y}`;
+const outPath = (y: number) => `M410 ${HUB.y} C 450 ${HUB.y}, 444 ${y}, 484 ${y}`;
+
+function Connectors() {
+  return (
+    <svg aria-hidden="true" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="absolute inset-0 h-full w-full" fill="none">
+      <defs>
+        <linearGradient id="hf-g-in" x1="216" y1="0" x2="290" y2="0" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#2de2d0" stopOpacity="0.15" />
+          <stop offset="1" stopColor="#2de2d0" stopOpacity="0.7" />
+        </linearGradient>
+        <linearGradient id="hf-g-out" x1="410" y1="0" x2="484" y2="0" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#ff8a1f" stopOpacity="0.7" />
+          <stop offset="1" stopColor="#ff8a1f" stopOpacity="0.2" />
+        </linearGradient>
+        <radialGradient id="hf-halo" cx="50%" cy="50%" r="50%">
+          <stop offset="0" stopColor="#ff7a00" stopOpacity="0.18" />
+          <stop offset="0.6" stopColor="#0fa3a3" stopOpacity="0.07" />
+          <stop offset="1" stopColor="#0fa3a3" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+      {/* Soft halo and concentric rings around the hub give it a sense of range. */}
+      <circle cx={HUB.x} cy={HUB.y} r="150" fill="url(#hf-halo)" />
+      <circle cx={HUB.x} cy={HUB.y} r="84" stroke="rgba(255,255,255,0.07)" />
+      <circle cx={HUB.x} cy={HUB.y} r="112" stroke="rgba(255,255,255,0.045)" strokeDasharray="2 5" />
+      {IN_Y.map((y) => (
+        <path key={`rail-in-${y}`} d={inPath(y)} stroke="url(#hf-g-in)" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
+      ))}
+      {OUT_Y.map((y) => (
+        <path key={`rail-out-${y}`} d={outPath(y)} stroke="url(#hf-g-out)" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
+      ))}
+      {IN_Y.map((y, i) => (
+        <path key={`pulse-in-${y}`} d={inPath(y)} pathLength="100" className="hf-pulse" stroke="#5ff0e0" strokeWidth="2" strokeLinecap="round" vectorEffect="non-scaling-stroke" style={{ animationDelay: `${i * 0.45}s` }} />
+      ))}
+      {OUT_Y.map((y, i) => (
+        <path key={`pulse-out-${y}`} d={outPath(y)} pathLength="100" className="hf-pulse" stroke="#ffa24d" strokeWidth="2" strokeLinecap="round" vectorEffect="non-scaling-stroke" style={{ animationDelay: `${1.2 + i * 0.5}s` }} />
+      ))}
+      {/* Ports where each route meets a card. */}
+      {IN_Y.map((y) => (
+        <circle key={`port-${y}`} cx="216" cy={y} r="2.5" fill="#2de2d0" opacity="0.8" />
+      ))}
+      {OUT_Y.map((y) => (
+        <circle key={`oport-${y}`} cx="484" cy={y} r="2.5" fill="#ff8a1f" opacity="0.8" />
+      ))}
+    </svg>
+  );
+}
 
 function Hub({ size, logo }: { size: string; logo: string }) {
   return (
-    <div className="hf-hub flex items-center justify-center" style={{ width: size, height: size, borderRadius: "27%", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.28)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.3)" }}>
+    <div className="hf-hub flex items-center justify-center" style={{ width: size, height: size, borderRadius: "27%", background: "linear-gradient(160deg, rgba(255,255,255,0.16), rgba(255,255,255,0.05))", boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.22), inset 0 1px 0 rgba(255,255,255,0.35), 0 18px 40px -10px rgba(0,0,0,0.7)" }}>
       <span style={{ width: logo, height: logo, display: "block" }}>
         <Mark src="/logos/serp-connect.webp" alt="SERP Connect" />
       </span>
@@ -99,29 +149,20 @@ function Hub({ size, logo }: { size: string; logo: string }) {
 
 export function HeroFlow() {
   return (
-    <div role="group" aria-label="Your data sources feed SERP Connect, which feeds Claude or ChatGPT. Sample question and answer shown." className="glass-panel w-full overflow-hidden rounded-[28px]">
+    <div role="group" aria-label="Your data sources feed SERP Connect, which feeds Claude or ChatGPT. Sample question and answer shown." className="glass-panel w-full overflow-hidden rounded-[22px]">
       {/* ── Tablet and desktop: the designed canvas, scaled ── */}
       <div className="hidden sm:block">
         <div className="relative mx-auto w-full max-w-[700px]" style={{ aspectRatio: `${W} / ${H}`, containerType: "inline-size", ["--tw" as string]: u(340) }}>
+          <div className="hf-dots" aria-hidden="true" />
           <Box left={16} top={52} className="hf-label" ><span style={{ fontSize: u(14) }}>Your data</span></Box>
           <Box left={484} top={52} className="hf-label"><span style={{ fontSize: u(14) }}>Your AI</span></Box>
 
-          {[131, 211, 291, 371].map((t, i) => (
-            <Line key={t} kind="in" dir="h" left={216} top={t} size={36} delay={i * 0.05} />
-          ))}
-          <Line kind="in" dir="dn" left={251} top={131} size={121} />
-          <Line kind="in" dir="up" left={251} top={252} size={121} />
-          <Line kind="in" dir="h" left={252} top={251} size={38} />
-          <Line kind="out" dir="h" left={410} top={251} size={38} />
-          <Line kind="out" dir="up" left={447} top={195} size={57} />
-          <Line kind="out" dir="dn" left={447} top={252} size={57} />
-          <Line kind="out" dir="h" left={448} top={195} size={36} />
-          <Line kind="out" dir="h" left={448} top={307} size={36} />
+          <Connectors />
 
           {SOURCES.map((s, i) => (
             <Box key={s.name} left={16} top={100 + i * 80} width={200} height={64}>
               <div className="flex h-full w-full items-center" style={{ ...cardStyle, borderRadius: u(18), gap: u(12), padding: `0 ${u(12)}` }}>
-                <Tile brand={s.brand} size={u(40)} radius={u(12)} inset={u(7)} />
+                <Tile brand={s.brand} size={u(40)} radius={u(12)} inset={u(7)} live />
                 <span className="whitespace-nowrap font-semibold" style={{ fontSize: u(16) }}>{s.name}</span>
               </div>
             </Box>
@@ -144,13 +185,13 @@ export function HeroFlow() {
           ))}
 
           <Box left={16} top={428} width={668} height={48}>
-            <div className="flex h-full w-full items-center" style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.16)", borderRadius: u(16), gap: u(12), padding: `0 ${u(18)}` }}>
+            <div className="flex h-full w-full items-center" style={{ ...cardStyle, borderRadius: u(16), gap: u(12), padding: `0 ${u(18)}` }}>
               <span style={{ color: "#FF9A3D", display: "flex" }}><ChatIcon size={u(20)} /></span>
               <span className="font-medium text-white" style={{ fontSize: u(17) }}><span className="hf-typed">{QUESTION}</span></span>
             </div>
           </Box>
           <Box left={16} top={488} width={668} height={48}>
-            <div className="hf-answer flex h-full w-full items-center" style={{ background: "rgba(0,128,128,0.3)", border: "1px solid rgba(94,214,203,0.55)", borderRadius: u(16), gap: u(12), padding: `0 ${u(18)}` }}>
+            <div className="hf-answer flex h-full w-full items-center" style={{ background: "linear-gradient(180deg, rgba(15,163,163,0.34), rgba(15,163,163,0.16))", boxShadow: "inset 0 0 0 1px rgba(94,214,203,0.5), inset 0 1px 0 rgba(255,255,255,0.18)", borderRadius: u(16), gap: u(12), padding: `0 ${u(18)}` }}>
               <span style={{ color: "#5ED6CB", display: "flex" }}><BarsIcon size={u(20)} /></span>
               <span className="min-w-0 flex-1 truncate font-semibold text-white" style={{ fontSize: u(17) }}>{ANSWER}</span>
               <span className="whitespace-nowrap" style={{ fontSize: u(14), color: "rgba(255,255,255,0.8)" }}>via Search Console</span>

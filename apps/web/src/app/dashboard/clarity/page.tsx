@@ -5,6 +5,7 @@ import { CLARITY_DAILY_REQUEST_LIMIT, CLARITY_DIMENSIONS, CLARITY_DOCS_URL, CLAR
 import { newRequestId } from "@serp/observability";
 import { fetchClarityReportAction } from "@/app/clarity-actions";
 import { getServices, requireUser } from "@/lib/server";
+import { SubmitButton } from "@/components/submit-button";
 
 export const dynamic = "force-dynamic";
 // Vercel: allow up to 60 s (the free plan's ceiling). Provider calls and property sync can take longer than the 10 s default.
@@ -238,7 +239,7 @@ export default async function ClarityReportsPage({ searchParams }: { searchParam
             )}
             <form action={fetchClarityReportAction} className="mt-4">
               {fetchFields}
-              <button className="btn-ghost !py-2 !text-xs">Refresh from Clarity (uses 1 request)</button>
+              <SubmitButton className="btn-ghost !py-2 !text-xs">Refresh from Clarity (uses 1 request)</SubmitButton>
             </form>
           </section>
 
@@ -268,9 +269,9 @@ export default async function ClarityReportsPage({ searchParams }: { searchParam
           </p>
           <form action={fetchClarityReportAction} className="mt-4">
             {fetchFields}
-            <button className="btn-primary" disabled={quota?.localRemaining === 0}>
+            <SubmitButton className="btn-primary" disabled={quota?.localRemaining === 0}>
               Fetch from Clarity (uses 1 request)
-            </button>
+            </SubmitButton>
             {quota?.localRemaining === 0 && <p className="mt-2 text-xs text-amber-300">This app's budget for today is used up.</p>}
           </form>
         </section>

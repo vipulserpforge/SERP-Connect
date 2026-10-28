@@ -3,6 +3,7 @@ import type { PropertyRecord, ProviderConnection } from "@serp/contracts";
 import { CLARITY_DAILY_REQUEST_LIMIT, type QuotaStatus } from "@serp/provider-clarity";
 import { disconnectConnectionAction, togglePropertyAction } from "@/app/actions";
 import { reconnectClarityAction, renameClarityAction, saveClarityConnectionAction, verifyClarityAction } from "@/app/clarity-actions";
+import { SubmitButton } from "@/components/submit-button";
 
 const NOTICES: Record<string, string> = {
   saved: "Token saved and encrypted. It is awaiting verification: Clarity has not been contacted yet.",
@@ -100,7 +101,7 @@ export function ClarityCard({ connections, properties, quotas, notice, error, er
                 Clarity API token
                 <input name="token" type="password" required maxLength={4096} autoComplete="off" spellCheck={false} placeholder="Paste the token here" className="field" />
               </label>
-              <button className="btn-primary">Save token securely</button>
+              <SubmitButton className="btn-primary">Save token securely</SubmitButton>
               <p className="muted text-xs">Sent over HTTPS straight to our server and stored encrypted. It is never shown again.</p>
             </form>
           </div>
@@ -134,9 +135,9 @@ export function ClarityCard({ connections, properties, quotas, notice, error, er
                 {prop && (
                   <form action={verifyClarityAction}>
                     <input type="hidden" name="propertyId" value={prop.id} />
-                    <button className="btn-ghost !px-3.5 !py-1.5 !text-xs" title="Makes one request to Clarity (uses 1 of the project's daily requests)">
+                    <SubmitButton className="btn-ghost !px-3.5 !py-1.5 !text-xs" title="Makes one request to Clarity (uses 1 of the project's daily requests)">
                       Verify token (uses 1 request)
-                    </button>
+                    </SubmitButton>
                   </form>
                 )}
               </div>
@@ -177,7 +178,7 @@ export function ClarityCard({ connections, properties, quotas, notice, error, er
                   <input type="hidden" name="propertyId" value={prop.id} />
                   <input type="hidden" name="enabled" value={String(!prop.enabledForMcp)} />
                   <span className={`text-xs ${prop.enabledForMcp ? "text-emerald-300" : "muted"}`}>{prop.enabledForMcp ? "Visible to Claude" : "Hidden from Claude"}</span>
-                  <button className="btn-ghost !px-3.5 !py-1.5 !text-xs">{prop.enabledForMcp ? "Disable for Claude" : "Enable for Claude"}</button>
+                  <SubmitButton className="btn-ghost !px-3.5 !py-1.5 !text-xs">{prop.enabledForMcp ? "Disable for Claude" : "Enable for Claude"}</SubmitButton>
                 </form>
               </div>
             )}
@@ -193,7 +194,7 @@ export function ClarityCard({ connections, properties, quotas, notice, error, er
                     New name
                     <input name="name" required minLength={2} maxLength={60} defaultValue={c.accountLabel ?? ""} className="field !mt-1" />
                   </label>
-                  <button className="btn-ghost !py-2.5">Save</button>
+                  <SubmitButton className="btn-ghost !py-2.5">Save</SubmitButton>
                 </form>
               </details>
               <details>
@@ -206,7 +207,7 @@ export function ClarityCard({ connections, properties, quotas, notice, error, er
                     New API token
                     <input name="token" type="password" required maxLength={4096} autoComplete="off" spellCheck={false} className="field !mt-1" />
                   </label>
-                  <button className="btn-ghost !py-2.5">Save new token</button>
+                  <SubmitButton className="btn-ghost !py-2.5">Save new token</SubmitButton>
                 </form>
                 <p className="muted mt-2 text-xs">The old token is overwritten. Revoke it in Clarity (Settings → Data Export) too.</p>
               </details>
@@ -218,9 +219,9 @@ export function ClarityCard({ connections, properties, quotas, notice, error, er
                     This deletes the stored token and saved reports and stops all requests for “{c.accountLabel}”. Claude will lose access to this project. It cannot be undone, and you
                     would need to paste a token again.
                   </p>
-                  <button className="rounded-xl px-3.5 py-2 text-xs text-red-200 transition hover:bg-red-500/10" style={{ border: "1px solid rgba(248,113,113,0.5)" }}>
+                  <SubmitButton className="rounded-xl px-3.5 py-2 text-xs text-red-200 transition hover:bg-red-500/10" style={{ border: "1px solid rgba(248,113,113,0.5)" }}>
                     Yes, remove this connection
-                  </button>
+                  </SubmitButton>
                 </form>
               </details>
             </div>

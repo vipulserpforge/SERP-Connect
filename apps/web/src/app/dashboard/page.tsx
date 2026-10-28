@@ -11,6 +11,7 @@ import { MCP_URL } from "@/lib/mcp-url";
 import { CopyButton } from "@/components/copy-button";
 import { getRepository, getServices, requireUser } from "@/lib/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { SubmitButton } from "@/components/submit-button";
 
 export const dynamic = "force-dynamic";
 // Vercel: allow up to 60 s (the free plan's ceiling). Provider calls and property sync can take longer than the 10 s default.
@@ -281,12 +282,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 {live ? (
                   <form action={startGoogleConnectAction}>
                     <input type="hidden" name="product" value={g.key} />
-                    <button className="btn-primary !px-4 !py-2">{rows.length === 0 ? "Connect" : "Connect another account"}</button>
+                    <SubmitButton className="btn-primary !px-4 !py-2">{rows.length === 0 ? "Connect" : "Connect another account"}</SubmitButton>
                   </form>
                 ) : (
-                  <button disabled title={g.note} className="btn-ghost cursor-not-allowed !py-2 opacity-50">
+                  <SubmitButton disabled title={g.note} className="btn-ghost cursor-not-allowed !py-2 opacity-50">
                     Connect
-                  </button>
+                  </SubmitButton>
                 )}
               </div>
 
@@ -315,18 +316,18 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                         {g.connection === "google" && c.status === "connected" && (
                           <form action={syncPropertiesAction}>
                             <input type="hidden" name="connectionId" value={c.id} />
-                            <button className="btn-ghost !px-3.5 !py-1.5 !text-xs">Refresh properties</button>
+                            <SubmitButton className="btn-ghost !px-3.5 !py-1.5 !text-xs">Refresh properties</SubmitButton>
                           </form>
                         )}
                         <form action={disconnectConnectionAction}>
                           <input type="hidden" name="connectionId" value={c.id} />
-                          <button
+                          <SubmitButton
                             title={sharedWithOther ? "This Google account is used for both Search Console and GA4; disconnecting removes both." : undefined}
                             className="rounded-xl px-3.5 py-1.5 text-xs text-red-300 transition hover:bg-red-500/10"
                             style={{ border: "1px solid rgba(248,113,113,0.35)" }}
                           >
                             Disconnect
-                          </button>
+                          </SubmitButton>
                         </form>
                       </div>
                     </div>
@@ -343,7 +344,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                             <input type="hidden" name="propertyId" value={prop.id} />
                             <input type="hidden" name="enabled" value={String(!prop.enabledForMcp)} />
                             <span className={`text-xs ${prop.enabledForMcp ? "text-emerald-300" : "muted"}`}>{prop.enabledForMcp ? "Visible to Claude" : "Hidden from Claude"}</span>
-                            <button className="btn-ghost !px-3.5 !py-1.5 !text-xs">{prop.enabledForMcp ? "Disable for Claude" : "Enable for Claude"}</button>
+                            <SubmitButton className="btn-ghost !px-3.5 !py-1.5 !text-xs">{prop.enabledForMcp ? "Disable for Claude" : "Enable for Claude"}</SubmitButton>
                           </form>
                         </li>
                       ))}
@@ -387,7 +388,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                   </span>
                   <form action={revokeClientGrantAction}>
                     <input type="hidden" name="clientId" value={g.clientId} />
-                    <button className="min-h-9 text-xs text-red-300 underline">Remove access</button>
+                    <SubmitButton className="min-h-9 text-xs text-red-300 underline">Remove access</SubmitButton>
                   </form>
                 </li>
               ))}

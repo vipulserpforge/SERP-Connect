@@ -3,6 +3,7 @@ import { decideAuthorizationAction } from "@/app/actions";
 import { getEnv } from "@/lib/env";
 import { requireUser } from "@/lib/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { SubmitButton } from "@/components/submit-button";
 
 export const dynamic = "force-dynamic";
 
@@ -96,12 +97,12 @@ export default async function ConsentPage({ searchParams }: { searchParams: Prom
 
       <form action={decideAuthorizationAction} className="mt-6 flex gap-3">
         <input type="hidden" name="authorizationId" value={authorizationId} />
-        <button name="decision" value="approve" className="btn-primary">
+        <SubmitButton name="decision" value="approve" className="btn-primary">
           Allow
-        </button>
-        <button name="decision" value="deny" className="btn-ghost">
+        </SubmitButton>
+        <SubmitButton name="decision" value="deny" className="btn-ghost">
           Deny
-        </button>
+        </SubmitButton>
       </form>
       <p className="mt-4 text-xs opacity-60">You can remove this access at any time from the dashboard.</p>
     </main>

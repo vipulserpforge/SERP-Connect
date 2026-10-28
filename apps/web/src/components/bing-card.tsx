@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { PropertyRecord, ProviderConnection } from "@serp/contracts";
 import { disconnectConnectionAction, togglePropertyAction } from "@/app/actions";
 import { renameBingAction, saveBingApiKeyAction, startBingOAuthAction, syncBingSitesAction } from "@/app/bing-actions";
+import { SubmitButton } from "@/components/submit-button";
 
 const NOTICES: Record<string, string> = {
   connected: "Bing account connected.",
@@ -112,9 +113,9 @@ export function BingCard({ connections, properties, notice, error, errorMessage,
               </h3>
               <p className="muted mt-1 text-xs">You sign in at Bing and approve access. Your password never reaches us.</p>
               <form action={startBingOAuthAction} className="mt-3">
-                <button className="btn-primary !px-4 !py-2" disabled={!oauthAvailable} title={oauthAvailable ? undefined : "Not set up on this server yet"}>
+                <SubmitButton className="btn-primary !px-4 !py-2" disabled={!oauthAvailable} title={oauthAvailable ? undefined : "Not set up on this server yet"}>
                   {connections.length === 0 ? "Connect with Bing" : "Connect another Bing account"}
-                </button>
+                </SubmitButton>
               </form>
               {!oauthAvailable && <p className="mt-2 text-xs text-amber-300">Sign-in with Bing is not set up on this server yet. Use an API key instead, or see docs/BING.md.</p>}
             </div>
@@ -135,7 +136,7 @@ export function BingCard({ connections, properties, notice, error, errorMessage,
                   Bing API key
                   <input name="apiKey" type="password" required maxLength={64} autoComplete="off" spellCheck={false} placeholder="Paste the key here" className="field" />
                 </label>
-                <button className="btn-ghost !py-2.5">Save key securely</button>
+                <SubmitButton className="btn-ghost !py-2.5">Save key securely</SubmitButton>
                 <p className="muted text-xs">Sent over HTTPS to our server and stored encrypted. It is never shown again. Bing requires API keys to travel in the request address, so the key is only ever sent from our server to Bing.</p>
               </form>
             </details>
@@ -164,9 +165,9 @@ export function BingCard({ connections, properties, notice, error, errorMessage,
               </div>
               <form action={syncBingSitesAction}>
                 <input type="hidden" name="connectionId" value={c.id} />
-                <button className="btn-ghost !px-3.5 !py-1.5 !text-xs" title="Asks Bing which verified sites this account can see">
+                <SubmitButton className="btn-ghost !px-3.5 !py-1.5 !text-xs" title="Asks Bing which verified sites this account can see">
                   Refresh sites
-                </button>
+                </SubmitButton>
               </form>
             </div>
             <p className="muted px-6 pb-3 pt-3 text-xs">{st.detail}</p>
@@ -183,7 +184,7 @@ export function BingCard({ connections, properties, notice, error, errorMessage,
                       <input type="hidden" name="propertyId" value={p.id} />
                       <input type="hidden" name="enabled" value={String(!p.enabledForMcp)} />
                       <span className={`text-xs ${p.enabledForMcp ? "text-emerald-300" : "muted"}`}>{p.enabledForMcp ? "Visible to Claude" : "Hidden from Claude"}</span>
-                      <button className="btn-ghost !px-3.5 !py-1.5 !text-xs">{p.enabledForMcp ? "Disable for Claude" : "Enable for Claude"}</button>
+                      <SubmitButton className="btn-ghost !px-3.5 !py-1.5 !text-xs">{p.enabledForMcp ? "Disable for Claude" : "Enable for Claude"}</SubmitButton>
                     </form>
                   </div>
                 </li>
@@ -206,7 +207,7 @@ export function BingCard({ connections, properties, notice, error, errorMessage,
                     New name
                     <input name="name" required minLength={2} maxLength={60} defaultValue={c.accountLabel ?? ""} className="field !mt-1" />
                   </label>
-                  <button className="btn-ghost !py-2.5">Save</button>
+                  <SubmitButton className="btn-ghost !py-2.5">Save</SubmitButton>
                 </form>
               </details>
               <details>
@@ -216,9 +217,9 @@ export function BingCard({ connections, properties, notice, error, errorMessage,
                 <form action={startBingOAuthAction} className="mt-3 space-y-2">
                   <input type="hidden" name="connectionId" value={c.id} />
                   <p className="muted text-xs">You will sign in at Bing again. {c.authMethod === "api_key" ? "The saved API key is replaced by the login." : "The old login is replaced."}</p>
-                  <button className="btn-ghost !py-2.5" disabled={!oauthAvailable}>
+                  <SubmitButton className="btn-ghost !py-2.5" disabled={!oauthAvailable}>
                     {c.authMethod === "oauth" ? "Reconnect" : "Switch to Bing login"}
-                  </button>
+                  </SubmitButton>
                 </form>
               </details>
               <details>
@@ -231,7 +232,7 @@ export function BingCard({ connections, properties, notice, error, errorMessage,
                     Bing API key
                     <input name="apiKey" type="password" required maxLength={64} autoComplete="off" spellCheck={false} className="field !mt-1" />
                   </label>
-                  <button className="btn-ghost !py-2.5">Save key</button>
+                  <SubmitButton className="btn-ghost !py-2.5">Save key</SubmitButton>
                 </form>
                 <p className="muted mt-2 text-xs">The current credential is overwritten. Compromised key? Delete it in Bing (Settings → API Access), generate a new one, and paste it here.</p>
               </details>
@@ -243,9 +244,9 @@ export function BingCard({ connections, properties, notice, error, errorMessage,
                     This deletes the stored credentials and saved reports for “{c.accountLabel}” and stops all requests. Claude will lose access to its sites. Bing offers no way for us to revoke
                     access from here, so also remove it in Bing Webmaster Tools.
                   </p>
-                  <button className="rounded-xl px-3.5 py-2 text-xs text-red-200 transition hover:bg-red-500/10" style={{ border: "1px solid rgba(248,113,113,0.5)" }}>
+                  <SubmitButton className="rounded-xl px-3.5 py-2 text-xs text-red-200 transition hover:bg-red-500/10" style={{ border: "1px solid rgba(248,113,113,0.5)" }}>
                     Yes, remove this connection
-                  </button>
+                  </SubmitButton>
                 </form>
               </details>
             </div>

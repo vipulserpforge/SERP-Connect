@@ -1,12 +1,13 @@
+import Image from "next/image";
 import Link from "next/link";
 import { HeroFlow } from "@/components/hero-flow";
 import { PromptDemo } from "@/components/prompt-demo";
 
 const SOURCES = [
-  { mark: "GSC", name: "Search Console", body: "Clicks, impressions, CTR and position by query, page, country and device, with up to 16 months of history." },
-  { mark: "GA4", name: "Google Analytics 4", body: "Users, sessions and key events in each property's own time zone, filtered to organic traffic when you ask." },
-  { mark: "CL", name: "Microsoft Clarity", body: "How visitors behave over the last 24 to 72 hours: engagement, rage clicks, scroll depth and errors." },
-  { mark: "BI", name: "Bing Webmaster", body: "Bing traffic, queries and crawl statistics, always kept apart from Google's numbers." },
+  { logo: "gsc-clear", name: "Search Console", body: "Clicks, impressions, CTR and position by query, page, country and device, with up to 16 months of history." },
+  { logo: "ga4", name: "Google Analytics 4", body: "Users, sessions and key events in each property's own time zone, filtered to organic traffic when you ask." },
+  { logo: "clarity", name: "Microsoft Clarity", body: "How visitors behave over the last 24 to 72 hours: engagement, rage clicks, scroll depth and errors." },
+  { logo: "bing-clear", name: "Bing Webmaster", body: "Bing traffic, queries and crawl statistics, always kept apart from Google's numbers." },
 ];
 
 const STEPS = [
@@ -84,44 +85,85 @@ export default function HomePage() {
   return (
     <main>
       {/* ───────── Hero: the question and its answer ───────── */}
-      <section className="container-x relative grid items-center gap-12 pb-16 pt-14 sm:pt-20 lg:grid-cols-[0.92fr_1.08fr] lg:gap-10 lg:pb-28 lg:pt-24">
-        <div>
-          <p className="pill enter" style={{ color: "var(--teal)", ["--i" as string]: 0 }}>
-            Search Console + GA4 + Clarity + Bing, for Claude
-          </p>
-          <h1 className="enter mt-6 text-[2.6rem] font-medium leading-[1.04] tracking-tight sm:text-6xl" style={{ ["--i" as string]: 1 }}>
-            Ask Claude about your <span className="accent">SEO data.</span>
-          </h1>
-          <p className="muted enter mt-6 max-w-xl text-lg leading-relaxed sm:text-xl" style={{ ["--i" as string]: 2 }}>
-            Connect your sources once. Claude answers from your real numbers: what changed, what is working and what to fix next.
-          </p>
-          <div className="enter mt-9 flex flex-col gap-3 sm:flex-row" style={{ ["--i" as string]: 3 }}>
-            <Link href="/signup" className="btn-primary !min-h-12 !px-7 text-base">
-              Get started free <span aria-hidden="true">↗</span>
-            </Link>
-            <Link href="#how" className="btn-ghost !min-h-12 !px-7 text-base">
-              See how it works
-            </Link>
+      <section className="relative isolate overflow-x-clip">
+        {/* Ambient light: a warm and a teal spotlight, plus a grid that fades out before it reaches the content below. */}
+        <div className="hero-ambient" aria-hidden="true" />
+        <div className="container-x relative grid items-center gap-14 pb-20 pt-14 sm:pt-20 lg:grid-cols-[0.92fr_1.08fr] lg:gap-10 lg:pb-32 lg:pt-24">
+          <div>
+            <p className="eyebrow enter" style={{ ["--i" as string]: 0 }}>
+              <span className="sr-only">Search Console + GA4 + Clarity + Bing, for Claude</span>
+              <span className="flex items-center gap-1.5" aria-hidden="true">
+                {[
+                  { id: "gsc", alt: "Google Search Console" },
+                  { id: "ga4", alt: "Google Analytics 4" },
+                  { id: "bing", alt: "Bing Webmaster Tools" },
+                  { id: "clarity", alt: "Microsoft Clarity" },
+                ].map(({ id, alt }) => (
+                  <span key={id} className="eyebrow-logo">
+                    <Image src={`/logos/${id}.png`} alt={alt} width={64} height={64} unoptimized className="h-full w-full object-contain" />
+                  </span>
+                ))}
+              </span>
+            </p>
+            <h1 className="hero-title enter mt-7 text-[2.75rem] font-medium leading-[1.02] sm:text-6xl lg:text-[4rem]" style={{ ["--i" as string]: 1 }}>
+              Your SEO data now <span className="accent">talks back.</span>
+            </h1>
+            <p className="muted enter mt-7 max-w-xl text-lg leading-relaxed sm:text-xl" style={{ ["--i" as string]: 2 }}>
+              Plug Search Console, GA4, Clarity and Bing into Claude or ChatGPT. Ask in plain English and get answers from your real numbers: what moved, what works, what to fix next.
+            </p>
+            <div className="enter mt-10 flex flex-col gap-3 sm:flex-row sm:items-center" style={{ ["--i" as string]: 3 }}>
+              <Link href="/signup" className="cta-primary group">
+                Get started free
+                <span className="cta-icon" aria-hidden="true">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M7 17L17 7M8 7h9v9" />
+                  </svg>
+                </span>
+              </Link>
+              <Link href="#how" className="cta-ghost">
+                See how it works
+              </Link>
+            </div>
+            <ul className="trust enter mt-9" style={{ ["--i" as string]: 4 }}>
+              <li>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <rect x="5" y="11" width="14" height="9" rx="2.5" />
+                  <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+                </svg>
+                <span>
+                  <span style={{ color: "var(--brand-hover)" }}>Read-only</span> access
+                </span>
+              </li>
+              <li>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M8.5 12.5l2.5 2.5 4.5-5" />
+                </svg>
+                Free to start
+              </li>
+              <li>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3z" />
+                </svg>
+                Your data stays yours
+              </li>
+            </ul>
           </div>
-          <p className="enter mt-5 text-sm muted" style={{ ["--i" as string]: 4 }}>
-            <span style={{ color: "var(--brand-hover)" }}>Read-only</span> access · Free to start · Your data stays yours
-          </p>
-        </div>
 
-        <div className="enter relative mx-auto w-full max-w-xl lg:max-w-none" style={{ ["--i" as string]: 3 }}>
-          <div className="glow-orb" style={{ width: "62%", aspectRatio: "1", right: "-6%", top: "26%" }} aria-hidden="true" />
-          {/* The panes peek out from behind the card's corners, so their bright rims never cross the text. */}
-          <div className="glass-shape drift-a" style={{ width: "50%", aspectRatio: "1", right: "-10%", top: "-11%" }} aria-hidden="true" />
-          <div className="glass-shape drift-b" style={{ width: "42%", aspectRatio: "1", left: "-13%", bottom: "-12%" }} aria-hidden="true" />
-          <div className="glass-bead drift-b" style={{ width: "clamp(36px, 7%, 64px)", aspectRatio: "1", right: "4%", bottom: "-3%" }} aria-hidden="true" />
-          <div className="relative z-10 py-8 sm:py-12">
-            <HeroFlow />
+          <div className="enter relative mx-auto w-full max-w-xl lg:max-w-none" style={{ ["--i" as string]: 3 }}>
+            <div className="glow-orb" style={{ width: "62%", aspectRatio: "1", right: "-6%", top: "26%" }} aria-hidden="true" />
+            <div className="relative z-10 py-8 sm:py-12">
+              {/* Double bezel: an outer tray with a hairline edge holds the inner glass plate. */}
+              <div className="bezel">
+                <HeroFlow />
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       {/* ───────── Sources: one conversation, four tools ───────── */}
-      <section aria-labelledby="sources-h" className="py-14 sm:py-20" style={{ background: "linear-gradient(180deg, rgba(11,38,35,0.55), rgba(11,38,35,0.15))" }}>
+      <section aria-labelledby="sources-h" className="py-14 sm:py-20" style={{ background: "linear-gradient(180deg, rgba(11,38,35,0), rgba(11,38,35,0.5) 22%, rgba(11,38,35,0.15))" }}>
         <div className="container-x">
           <h2 id="sources-h" className="reveal max-w-3xl text-3xl font-medium leading-tight tracking-tight sm:text-5xl">
             Four tools, <span className="accent">one conversation.</span>
@@ -130,8 +172,8 @@ export default function HomePage() {
           <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {SOURCES.map((s, i) => (
               <li key={s.name} className="reveal lift rounded-2xl p-6" style={{ background: "var(--surface)", border: "1px solid var(--line)", ["--i" as string]: i }}>
-                <span className="flex h-11 w-11 items-center justify-center rounded-xl text-sm font-semibold" style={{ background: "rgba(15,163,163,0.2)", color: "var(--teal)" }}>
-                  {s.mark}
+                <span className="source-logo">
+                  <Image src={`/logos/${s.logo}.png`} alt="" width={64} height={64} unoptimized className="h-full w-full object-contain" />
                 </span>
                 <h3 className="mt-5 text-xl font-medium">{s.name}</h3>
                 <p className="muted mt-2 text-sm leading-relaxed">{s.body}</p>
