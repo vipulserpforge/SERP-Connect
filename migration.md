@@ -75,7 +75,7 @@ Five things in this project are tied to the domain name. Miss one and that featu
 - [ ] **Hostinger** (hPanel) login, where `serpforge.io` DNS lives.
 - [ ] **Namecheap** login (for `visibll.in`, needed later for the old-domain clean-up and for rollback).
 - [ ] Logins for **Vercel**, **Supabase**, **Google Cloud console**, **Mailtrap** (Email Sending), **Google Search Console**, and **Bing Webmaster Tools** (only if you use "Connect with Bing").
-- [ ] SSH login to the VPS: `ssh serp@172.93.223.194` (the IP from `docs/mcp-web.md`). The guide says where you need `root`.
+- [ ] SSH login to the VPS as **root**: `ssh root@172.93.223.194` (the IP from `docs/mcp-web.md`), with the root password from your VPS provider's email (paste it, nothing shows while you paste). The `serp` account has **no password**, so you cannot log in as `serp` directly. You log in as `root` and switch with `su - serp` where a step says so.
 - [ ] This project open in Claude Code on your Mac, with GitHub access.
 
 ### Step 2. Take a safety copy of your settings (5 minutes)
@@ -83,7 +83,7 @@ Five things in this project are tied to the domain name. Miss one and that featu
 Before changing anything, save what works today. This is your Rollback kit.
 
 - [ ] In Vercel → your project → **Settings** → **Environment Variables**, take a screenshot of all names and (for the non-secret ones) values. Keep it in `~/Documents/private-serp/`.
-- [ ] On the VPS, run `cp ~/mcp.env ~/mcp.env.visibll-backup` (one line, as the `serp` user).
+- [ ] On the VPS, run `cp /home/serp/mcp.env /home/serp/mcp.env.visibll-backup` (one line, works as `root`).
 - [ ] In Supabase → **Authentication** → **URL Configuration**, screenshot the Site URL and Redirect URLs.
 - [ ] In Supabase → **Authentication** → **Emails** → **SMTP Settings**, screenshot the host, port, username and sender (**not** the password). Note where the old Mailtrap token is saved.
 - [ ] In Google Cloud → **Google Auth Platform** → **Clients** → your client, screenshot **Authorized redirect URIs**.
@@ -244,11 +244,11 @@ Nothing here changes what customers see. The old MCP keeps running until Phase 5
 
 ### Step 1. Check you can reach the VPS
 
-On your Mac Terminal: `ssh serp@172.93.223.194`. If it works you will see a prompt like `serp@vps:~$`.
+On your Mac Terminal: `ssh root@172.93.223.194` and paste the root password. If it works you will see a prompt like `root@mcp:~#`. (Do **not** use `ssh serp@…`: that account has no password and says "Permission denied".) Steps 2 and 3 run as `root`; Step 4 and Phase 5 run as `serp` (`su - serp`).
 
 ### Step 2. Nginx: add the new name (keep the old one for now)
 
-Nginx is the "doorman" on the VPS that accepts requests from the internet. Switch to root: `sudo -i` (or log in as root). Then:
+Nginx is the "doorman" on the VPS that accepts requests from the internet. You are already `root` from Step 1. Run:
 
 ```
 cp /etc/nginx/sites-available/mcp.visibll.in /etc/nginx/sites-available/mcp.serpforge.io
@@ -284,7 +284,13 @@ At this moment `https://mcp.serpforge.io/healthz` already answers `{"status":"ok
 
 ### Step 4. Prepare the new settings file (do not restart yet)
 
-Switch back to the `serp` user (`exit` from root, or `su - serp`), then:
+Switch to the `serp` user (the prompt changes from `root@…#` to `serp@…$`):
+
+```
+su - serp
+```
+
+Then:
 
 ```
 nano ~/mcp.env
@@ -340,7 +346,7 @@ The hook was already switched on in the dashboard earlier (Authentication → Ho
 
 ### Step 2. Restart the MCP server on the VPS
 
-As the `serp` user on the VPS:
+As the `serp` user on the VPS (`su - serp` if the prompt still says `root@…#`):
 
 ```
 bash ~/SERP-Connect/deploy/vps/deploy.sh
@@ -543,7 +549,7 @@ Vercel → **Settings** → **Domains** → next to `connect.visibll.in` click *
 
 ### Step 3. Retire the old MCP name on the VPS
 
-As root on the VPS:
+As root on the VPS (`ssh root@172.93.223.194`):
 
 ```
 rm /etc/nginx/sites-enabled/mcp.visibll.in
@@ -585,6 +591,7 @@ Do this only after a week with no email problems, and after confirming Supabase'
 | Dashboard still shows `mcp.visibll.in` | Website not rebuilt after the settings change | Vercel → Deployments → ⋯ → **Redeploy** (Phase 3 Step 4). Ask Claude to check that `mcp-url.ts` in `main` says `serpforge.io` |
 | `https://mcp.serpforge.io` shows "502 Bad Gateway" | MCP server is not running | On the VPS run `pm2 status` then `pm2 logs serp-mcp --lines 50` and give Claude the error text (never the `mcp.env` contents) |
 | `nginx -t` complains about `limit_req_zone` "already defined" | The line exists in both site files | Delete it from the new file (Phase 4 Step 2) |
+| `ssh serp@…` says "Permission denied" | The `serp` account has no password | Log in with `ssh root@172.93.223.194`, then `su - serp` (Phase 4 Step 1) |
 | Certbot fails | DNS not yet pointing at the VPS, or port 80/443 closed | Check Phase 2 Step 3. `ufw status` should show 80 and 443 allowed |
 | Vercel domain shows "Invalid Configuration" | DNS record missing or wrong | Compare with what Vercel shows (Phase 3 Step 2). Wait 10 minutes |
 | Google connection works for you but not a customer | App is in Testing mode and they are not a listed test user (or their 7 days passed) | Google Auth Platform → **Audience** → add them under **Test users**. Not caused by the move |
