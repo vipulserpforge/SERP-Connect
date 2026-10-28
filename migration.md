@@ -198,6 +198,8 @@ Vercel now shows a record to create (Settings → **Domains** → **Edit** / **L
 | Points to | exactly what Vercel shows (often `cname.vercel-dns.com`) |
 | TTL | `300` |
 
+**If Hostinger says "DNS resource record is not valid or conflicts with another resource record":** a record named `connect` already exists, and a CNAME cannot share its name with any other record. Hostinger often adds one by itself: an **ALIAS** record named `connect` pointing to `connect.serpforge.io.cdn.hstgr.net`. Delete that one ALIAS row (only after checking nothing is hosted at `connect.serpforge.io` on Hostinger), then add the CNAME again. Do not delete the Mailtrap rows (`mt-link.connect`, `mt07.connect`, `…_domainkey.connect`, `_dmarc.connect`): they have different names. If the ALIAS comes back, delete the `connect` subdomain under hPanel → **Websites** too.
+
 Back in Vercel the domain turns **green** after a few minutes, and the HTTPS padlock is added automatically.
 
 ### Step 3. Change the website settings
@@ -593,6 +595,7 @@ Do this only after a week with no email problems, and after confirming Supabase'
 | `nginx -t` complains about `limit_req_zone` "already defined" | The line exists in both site files | Delete it from the new file (Phase 4 Step 2) |
 | `ssh serp@…` says "Permission denied" | The `serp` account has no password | Log in with `ssh root@172.93.223.194`, then `su - serp` (Phase 4 Step 1) |
 | Certbot fails | DNS not yet pointing at the VPS, or port 80/443 closed | Check Phase 2 Step 3. `ufw status` should show 80 and 443 allowed |
+| Hostinger: "DNS resource record is not valid or conflicts with another resource record" when adding `connect` | An existing `connect` record (often a Hostinger **ALIAS** to `…cdn.hstgr.net`) blocks the CNAME | Phase 3 Step 2: delete that ALIAS, then add the Vercel CNAME |
 | Vercel domain shows "Invalid Configuration" | DNS record missing or wrong | Compare with what Vercel shows (Phase 3 Step 2). Wait 10 minutes |
 | Google connection works for you but not a customer | App is in Testing mode and they are not a listed test user (or their 7 days passed) | Google Auth Platform → **Audience** → add them under **Test users**. Not caused by the move |
 | New DNS record has no effect | `serpforge.io` uses nameservers other than Hostinger's | Edit the records at the provider the nameservers point to (Phase 2 Step 1) |
